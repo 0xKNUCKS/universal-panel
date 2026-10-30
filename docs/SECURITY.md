@@ -15,6 +15,7 @@ functionality; where a trade-off exists it is written down here.
 | `app.manifest` | `asInvoker` (no elevation yet), x64 only | Least privilege until a module actually needs admin. |
 | `ProcessControl` | Each action opens the process with only the right it needs, then checks the creation time still matches the sampled row before acting | A PID reused between sampling and the click can't redirect terminate/suspend to a different process. |
 | `ThreadControl` | Thread actions re-check the thread's creation time and that it still belongs to the process being shown | Same PID-reuse protection as processes, for TIDs. |
+| `HandleSnapshot` | Other processes' handles are duplicated with zero access (names) or limited-query access (process/thread identity) and closed immediately; never `DUPLICATE_SAME_ACCESS`. Name queries that can hang run on a timed worker | Reading handle info never gives the panel real access to another process's objects, and a hostile pipe can't freeze the panel. Closing a remote handle always confirms and is refused for the panel itself. |
 | `ProcessGuard` | Critical processes (System Informer's list, System PID, break-on-termination) get an explicit warning; the panel refuses to suspend itself | Prevents one-click bugchecks, logoffs or a panel that can never resume. Not a restriction: the action still runs after confirming. |
 
 ## Rules for upcoming modules

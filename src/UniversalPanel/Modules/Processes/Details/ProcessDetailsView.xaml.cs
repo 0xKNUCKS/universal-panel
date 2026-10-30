@@ -31,6 +31,7 @@ internal sealed partial class ProcessDetailsView : UserControl
         _threadsView.SortDescriptions.Add(new SortDescription(nameof(ThreadRow.Tid), ListSortDirection.Ascending));
         ThreadsGrid.ItemsSource = _threadsView;
         ModulesGrid.ItemsSource = _modules;
+        InitializeHandles();
     }
 
     internal IModuleHost Host { get; }
@@ -56,6 +57,8 @@ internal sealed partial class ProcessDetailsView : UserControl
         _modules.Clear();
         _moduleRecords = [];
         _ = Guard.RunAsync("Details.Modules", LoadModulesAsync);
+
+        ResetHandles();
     }
 
     /// <summary>Moves keyboard focus into the page so Backspace and the grid keys reach it.</summary>
@@ -65,6 +68,7 @@ internal sealed partial class ProcessDetailsView : UserControl
     /// <summary>Applies a sampler frame; ignored unless it's for the process being shown.</summary>
     public void Apply(ProcessFrame frame)
     {
+        _lastProcesses = frame.Processes;
         if (Target is not { } target || frame.Focus != target)
         {
             return;
@@ -133,6 +137,7 @@ internal sealed partial class ProcessDetailsView : UserControl
             container.ToolTip = container.Item switch
             {
                 ThreadRow thread => thread.Details,
+                HandleRow handle => handle.Details,
                 ModuleRow module => $"{module.Path}\nBase {module.BaseText} · size {module.SizeText}",
                 _ => null,
             };
