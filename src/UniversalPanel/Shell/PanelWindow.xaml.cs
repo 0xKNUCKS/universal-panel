@@ -207,12 +207,35 @@ public partial class PanelWindow : FluentWindow, IModuleHost
 
         _active = next;
         ModuleTitle.Text = next.Title;
-        ModuleHost.Content = GetOrCreateView(next);
+        ShowView(GetOrCreateView(next));
 
         if (_isOpen)
         {
             ActivateModule(next);
         }
+    }
+
+    private FrameworkElement? _shownView;
+
+    private void ShowView(FrameworkElement view)
+    {
+        if (_shownView is not null && _shownView != view)
+        {
+            _shownView.Visibility = Visibility.Collapsed;
+            // Error views aren't cached (re-selecting retries), so don't keep them around.
+            if (!_views.ContainsValue(_shownView))
+            {
+                ModuleHost.Children.Remove(_shownView);
+            }
+        }
+
+        if (!ModuleHost.Children.Contains(view))
+        {
+            ModuleHost.Children.Add(view);
+        }
+
+        view.Visibility = Visibility.Visible;
+        _shownView = view;
     }
 
     private FrameworkElement GetOrCreateView(IPanelModule module)

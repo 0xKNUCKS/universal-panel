@@ -70,11 +70,9 @@
         FontTypography="Subtitle"
       />
 
-      <ContentControl
-        x:Name="ModuleHost"
-        Grid.Row="1"
-        Focusable="False"
-      />
+      <!--  Module views stay in this Grid once created and are shown/hidden, never re-parented:
+            swapping a ContentControl's content rebuilt the whole process grid on every switch.  -->
+      <Grid x:Name="ModuleHost" Grid.Row="1" />
 
       <ui:InfoBar
         x:Name="NoticeBar"
