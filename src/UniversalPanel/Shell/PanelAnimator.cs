@@ -19,6 +19,9 @@ internal static class PanelAnimator
     private const double SlideDistance = 56;
     private static readonly Duration EntranceDuration = new(TimeSpan.FromMilliseconds(260));
     private static readonly Duration ExitDuration = new(TimeSpan.FromMilliseconds(160));
+    // The fade outlasts the slide so the content settles into view rather than snapping in.
+    private static readonly Duration EntranceFadeDuration = new(TimeSpan.FromMilliseconds(450));
+    private static readonly Duration ExitFadeDuration = new(TimeSpan.FromMilliseconds(240));
 
     public static void BeginEntrance(Window window, UIElement content, Action completed)
     {
@@ -43,8 +46,8 @@ internal static class PanelAnimator
 
         var ease = new QuinticEase { EasingMode = EasingMode.EaseOut };
         var move = new DoubleAnimation(SlideDistance, 0, EntranceDuration) { EasingFunction = ease };
-        var fade = new DoubleAnimation(0, 1, EntranceDuration) { EasingFunction = ease };
-        move.Completed += (_, _) => OnCompleted();
+        var fade = new DoubleAnimation(0, 1, EntranceFadeDuration) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+        fade.Completed += (_, _) => OnCompleted(); // the longer of the two
 
         // Start from the off-position before the window is uncloaked, so the first frame is right.
         slide.X = SlideDistance;
@@ -74,11 +77,10 @@ internal static class PanelAnimator
         }
 
         var ease = new CubicEase { EasingMode = EasingMode.EaseIn };
-        var move = new DoubleAnimation(SlideDistance, ExitDuration) { EasingFunction = ease };
-        var fade = new DoubleAnimation(0, ExitDuration) { EasingFunction = ease };
-        move.Completed += (_, _) => OnCompleted();
+        slide.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(SlideDistance, ExitDuration) { EasingFunction = ease });
 
-        slide.BeginAnimation(TranslateTransform.XProperty, move);
+        var fade = new DoubleAnimation(0, ExitFadeDuration) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+        fade.Completed += (_, _) => OnCompleted(); // the longer of the two
         content.BeginAnimation(UIElement.OpacityProperty, fade);
     }
 
