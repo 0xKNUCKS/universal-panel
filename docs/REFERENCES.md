@@ -13,6 +13,12 @@ Rules:
 - GPL/LGPL code may be *read* for API behavior, never copied. Check each repo's license at the
   commit we reference before porting.
 
+## Libraries we depend on
+
+| Package | Version | License | Why |
+|---|---|---|---|
+| [WPF-UI](https://github.com/lepoco/wpfui) | 4.3.0 | MIT | Fluent theme, controls, Mica/Acrylic backdrop (`FluentWindow`) |
+
 ## Ported / mirrored code
 
 Reference snapshots (shallow clones, read 2026-10-29):
