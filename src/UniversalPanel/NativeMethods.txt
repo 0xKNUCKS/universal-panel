@@ -1,0 +1,11 @@
+DwmSetWindowAttribute
+DWMWINDOWATTRIBUTE
+GetCursorPos
+GetDpiForMonitor
+GetMonitorInfo
+GetWindowLong
+MonitorFromPoint
+SetForegroundWindow
+SetWindowLong
+SetWindowPos
+WINDOW_EX_STYLE

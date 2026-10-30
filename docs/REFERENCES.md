@@ -18,6 +18,7 @@ Rules:
 | Package | Version | License | Why |
 |---|---|---|---|
 | [WPF-UI](https://github.com/lepoco/wpfui) | 4.3.0 | MIT | Fluent theme, controls, Mica/Acrylic backdrop (`FluentWindow`) |
+| [Microsoft.Windows.CsWin32](https://github.com/microsoft/CsWin32) | 0.3.x | MIT | P/Invoke signatures generated from official Win32 metadata (no hand-written signatures) |
 
 ## Ported / mirrored code
 
@@ -31,6 +32,12 @@ Reference snapshots (shallow clones, read 2026-10-29):
 | [thomaslevesque/NHotkey](https://github.com/thomaslevesque/NHotkey) | Apache-2.0 | `0def9e82b71d67b97026901a2f543202af430d09` |
 | [microsoft/PowerToys](https://github.com/microsoft/PowerToys) | MIT | `669a19ea9c50f6b42ecc8ee962e1323013c3656f` |
 | [HavenDV/H.NotifyIcon](https://github.com/HavenDV/H.NotifyIcon) | MIT | `d590d46aa18d480782c8aaf5bf4fee2b4c12accf` |
+
+### Shell
+
+| Our file | Mirrors | What was taken |
+|---|---|---|
+| `src/UniversalPanel/Native/WindowExtensions.cs` | EarTrumpet `EarTrumpet/Extensions/WindowExtensions.cs` | `Cloak` (`DWMWA_CLOAK`), `ApplyExtendedWindowStyle(WS_EX_TOOLWINDOW)`, `SetWindowPos` with `SWP_NOZORDER \| SWP_NOACTIVATE` |
 
 ### Error handling
 
