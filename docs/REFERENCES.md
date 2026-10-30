@@ -18,6 +18,7 @@ Rules:
 | Package | Version | License | Why |
 |---|---|---|---|
 | [WPF-UI](https://github.com/lepoco/wpfui) | 4.3.0 | MIT | Fluent theme, controls, Mica/Acrylic backdrop (`FluentWindow`) |
+| [NHotkey.Wpf](https://github.com/thomaslevesque/NHotkey) | 3.0.0 | Apache-2.0 | Global hotkey via `RegisterHotKey` (same package Flow Launcher uses) |
 | [H.NotifyIcon.Wpf](https://github.com/HavenDV/H.NotifyIcon) | 2.4.1 | MIT | Tray icon |
 | [Microsoft.Windows.CsWin32](https://github.com/microsoft/CsWin32) | 0.3.x | MIT | P/Invoke signatures generated from official Win32 metadata (no hand-written signatures) |
 
@@ -38,6 +39,7 @@ Reference snapshots (shallow clones, read 2026-10-29):
 
 | Our file | Mirrors | What was taken |
 |---|---|---|
+| `src/UniversalPanel/Shell/HotkeyService.cs` | Flow Launcher `Flow.Launcher/Helper/HotKeyMapper.cs` | `HotkeyManager.Current.AddOrReplace(...)`, catching `HotkeyAlreadyRegisteredException` and surfacing it |
 | `src/UniversalPanel/Native/WindowExtensions.cs` | EarTrumpet `EarTrumpet/Extensions/WindowExtensions.cs` | `Cloak` (`DWMWA_CLOAK`), `ApplyExtendedWindowStyle(WS_EX_TOOLWINDOW)`, `SetWindowPos` with `SWP_NOZORDER \| SWP_NOACTIVATE` |
 | `src/UniversalPanel/Shell/PanelWindow.xaml.cs` (show/hide) | EarTrumpet `EarTrumpet/UI/Views/FlyoutWindow.xaml.cs` | Pre-warm with `Show(); Hide();` + `WS_EX_TOOLWINDOW`; position from monitor working area in physical pixels; cloak while hidden |
 | `src/UniversalPanel/Shell/PanelAnimator.cs` | EarTrumpet `EarTrumpet/UI/Helpers/WindowAnimationLibrary.cs` | Entrance/exit storyboard on `Window.Left` + opacity, `QuinticEase` ease-out, `FillBehavior.Stop` then commit final value; activate + `SetForegroundWindow` on completion |

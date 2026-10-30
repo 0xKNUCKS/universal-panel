@@ -8,6 +8,10 @@ using H.NotifyIcon.Core;
 using UniversalPanel.Diagnostics;
 using UniversalPanel.Modules;
 using UniversalPanel.Shell;
+using Wpf.Ui.Controls;
+using MenuItem = System.Windows.Controls.MenuItem;
+using MessageBox = System.Windows.MessageBox;
+using MessageBoxButton = System.Windows.MessageBoxButton;
 
 namespace UniversalPanel;
 
@@ -49,6 +53,15 @@ public partial class App : Application
         _panel = new PanelWindow(PlaceholderModule.Defaults);
         _panel.Initialize();
         _tray = CreateTrayIcon();
+
+        var gesture = HotkeyService.DefaultToggleGesture;
+        var hotkeyError = HotkeyService.RegisterToggle(gesture, () => Guard.Run("Hotkey.Toggle", _panel.Toggle));
+        if (hotkeyError is not null)
+        {
+            Log.Warn("Hotkey", hotkeyError);
+            _panel.ShowPanel();
+            _panel.ShowNotice("Hotkey unavailable", hotkeyError + " Use the tray icon to open the panel.", InfoBarSeverity.Warning);
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)
@@ -67,7 +80,7 @@ public partial class App : Application
 
         var tray = new TaskbarIcon
         {
-            ToolTipText = "Universal Panel",
+            ToolTipText = $"Universal Panel ({HotkeyService.DefaultToggleGesture.DisplayString})",
             IconSource = new GeneratedIconSource
             {
                 Text = "U",
