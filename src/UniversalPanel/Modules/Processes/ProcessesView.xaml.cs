@@ -102,13 +102,13 @@ internal sealed partial class ProcessesView : UserControl
 
         var culture = System.Globalization.CultureInfo.CurrentCulture;
         var text = string.Create(culture,
-            $"CPU {frame.SystemCpuPercent:0.00}% · {frame.Processes.Count:N0} processes · {threads:N0} threads · {handles:N0} handles");
+            $"CPU {frame.SystemCpuPercent:0.00}% | {frame.Processes.Count:N0} processes | {threads:N0} threads | {handles:N0} handles");
 
         if (frame.MemoryTotal > 0)
         {
             ulong used = frame.MemoryTotal - frame.MemoryAvailable;
             text += string.Create(culture,
-                $" · Memory {100.0 * used / frame.MemoryTotal:0.00}% · {ProcessRow.FormatBytes(used)} of {ProcessRow.FormatBytes(frame.MemoryTotal)}");
+                $" | Memory {100.0 * used / frame.MemoryTotal:0.00}% | {ProcessRow.FormatBytes(used)} of {ProcessRow.FormatBytes(frame.MemoryTotal)}");
         }
 
         return text;
