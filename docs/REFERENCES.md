@@ -45,7 +45,7 @@ Reference snapshots (shallow clones, read 2026-10-29):
 | `src/UniversalPanel/Shell/HotkeyService.cs` | Flow Launcher `Flow.Launcher/Helper/HotKeyMapper.cs` | `HotkeyManager.Current.AddOrReplace(...)`, catching `HotkeyAlreadyRegisteredException` and surfacing it |
 | `src/UniversalPanel/Native/WindowExtensions.cs` | EarTrumpet `EarTrumpet/Extensions/WindowExtensions.cs` | `Cloak` (`DWMWA_CLOAK`), `ApplyExtendedWindowStyle(WS_EX_TOOLWINDOW)`, `SetWindowPos` with `SWP_NOZORDER \| SWP_NOACTIVATE` |
 | `src/UniversalPanel/Shell/PanelWindow.xaml.cs` (show/hide) | EarTrumpet `EarTrumpet/UI/Views/FlyoutWindow.xaml.cs` | Pre-warm with `Show(); Hide();` + `WS_EX_TOOLWINDOW`; position from monitor working area in physical pixels; cloak while hidden |
-| `src/UniversalPanel/Shell/PanelAnimator.cs` | EarTrumpet `EarTrumpet/UI/Helpers/WindowAnimationLibrary.cs` | Entrance/exit storyboard on `Window.Left` + opacity, `QuinticEase` ease-out, `FillBehavior.Stop` then commit final value; activate + `SetForegroundWindow` on completion |
+| `src/UniversalPanel/Shell/PanelAnimator.cs` | EarTrumpet `EarTrumpet/UI/Helpers/WindowAnimationLibrary.cs` | `QuinticEase` ease-out entrance; activate + `SetForegroundWindow` on completion. Deviation: animates the content (`TranslateTransform` + opacity) instead of `Window.Left`, since moving the HWND every frame stutters with an acrylic backdrop |
 | `src/UniversalPanel/Shell/PanelWindow.xaml` | WPF-UI `src/Wpf.Ui/Controls/FluentWindow/FluentWindow.cs`, `Controls/Window/WindowBackdrop.cs` | `FluentWindow` + `ExtendsContentIntoTitleBar` + `WindowBackdropType` (backdrop requires extended content) |
 
 ### Processes
@@ -80,8 +80,8 @@ Deliberate deviations from upstream:
 - `SingleInstance`: upstream fires the client connect as an un-awaited task and returns from
   `Main`, which can exit before the signal is sent; we connect synchronously with a 1 s timeout.
   Added `CurrentUserOnly` pipe options (see [SECURITY.md](SECURITY.md)).
-- Animations: EarTrumpet fades `Window.Opacity`, which only works with `AllowsTransparency`. We fade
-  the window's content instead.
+- Animations: EarTrumpet moves and fades the window itself; we slide and fade only the content
+  (GPU-composed), which stays smooth over the acrylic backdrop.
 
 Deviation from EarTrumpet's backdrop: EarTrumpet uses `AllowsTransparency="True"` plus the
 undocumented `SetWindowCompositionAttribute` accent policy for acrylic. We use WPF-UI's

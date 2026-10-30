@@ -1,12 +1,14 @@
-// Mirrors EarTrumpet (MIT), EarTrumpet/UI/Helpers/WindowAnimationLibrary.cs
-// (BeginFlyoutEntranceAnimation / BeginFlyoutExitanimation)
+// Timing and easing follow EarTrumpet (MIT), EarTrumpet/UI/Helpers/WindowAnimationLibrary.cs
+// (QuinticEase ease-out entrance, activate + SetForegroundWindow on completion).
 // https://github.com/File-New-Project/EarTrumpet @ f492b8fa6459d9c5b442ad07ea28d70e9db7f493
-// Changes: horizontal slide only (panel is always on the right edge). The opacity fade targets the
-// window *content*, because Window.Opacity only works with AllowsTransparency=True, which we avoid
-// (see docs/PITFALLS.md). Animations are skipped when the user turned them off, via WPF's
-// SystemParameters.ClientAreaAnimation (SPI_GETCLIENTAREAANIMATION) instead of WinRT UISettings.
+// Deviation: EarTrumpet animates Window.Left, which moves the HWND with SetWindowPos on every
+// frame; with a DWM acrylic backdrop that stutters visibly. The window is now placed once at its
+// final position and only the content is animated (TranslateTransform + opacity), which WPF
+// composes on the GPU without touching the window. Skipped when the user turned animations off
+// (SystemParameters.ClientAreaAnimation, SPI_GETCLIENTAREAANIMATION).
 
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 using UniversalPanel.Native;
 
@@ -14,9 +16,9 @@ namespace UniversalPanel.Shell;
 
 internal static class PanelAnimator
 {
-    private const double AnimationOffset = 40;
-    private static readonly Duration EntranceDuration = new(TimeSpan.FromMilliseconds(180));
-    private static readonly Duration ExitDuration = new(TimeSpan.FromMilliseconds(150));
+    private const double SlideDistance = 56;
+    private static readonly Duration EntranceDuration = new(TimeSpan.FromMilliseconds(260));
+    private static readonly Duration ExitDuration = new(TimeSpan.FromMilliseconds(160));
 
     public static void BeginEntrance(Window window, UIElement content, Action completed)
     {
@@ -29,52 +31,29 @@ internal static class PanelAnimator
         }
 
         window.Activate();
+        var slide = SlideOf(content);
 
         if (!SystemParameters.ClientAreaAnimation)
         {
+            Stop(content, slide);
             window.Cloak(false);
             OnCompleted();
             return;
         }
 
-        double moveTo = window.Left;
-        window.Left += AnimationOffset;
+        var ease = new QuinticEase { EasingMode = EasingMode.EaseOut };
+        var move = new DoubleAnimation(SlideDistance, 0, EntranceDuration) { EasingFunction = ease };
+        var fade = new DoubleAnimation(0, 1, EntranceDuration) { EasingFunction = ease };
+        move.Completed += (_, _) => OnCompleted();
 
-        var move = new DoubleAnimation
-        {
-            From = window.Left,
-            To = moveTo,
-            Duration = EntranceDuration,
-            FillBehavior = FillBehavior.Stop,
-            EasingFunction = new QuinticEase { EasingMode = EasingMode.EaseOut },
-        };
-        Storyboard.SetTarget(move, window);
-        Storyboard.SetTargetProperty(move, new PropertyPath(Window.LeftProperty));
-
-        var fade = new DoubleAnimation
-        {
-            From = 0,
-            To = 1,
-            Duration = EntranceDuration,
-            FillBehavior = FillBehavior.Stop,
-            EasingFunction = new QuinticEase { EasingMode = EasingMode.EaseOut },
-        };
-        Storyboard.SetTarget(fade, content);
-        Storyboard.SetTargetProperty(fade, new PropertyPath(UIElement.OpacityProperty));
-
-        var storyboard = new Storyboard { FillBehavior = FillBehavior.Stop };
-        storyboard.Children.Add(move);
-        storyboard.Children.Add(fade);
-        storyboard.Completed += (_, _) =>
-        {
-            // FillBehavior.Stop reverts to the base value; commit the final position.
-            window.Left = moveTo;
-            content.Opacity = 1;
-            OnCompleted();
-        };
-
+        // Start from the off-position before the window is uncloaked, so the first frame is right.
+        slide.X = SlideDistance;
+        content.Opacity = 0;
         window.Cloak(false);
-        storyboard.Begin(window);
+
+        // SnapshotAndReplace (the default) takes over smoothly from a running exit animation.
+        slide.BeginAnimation(TranslateTransform.XProperty, move);
+        content.BeginAnimation(UIElement.OpacityProperty, fade);
     }
 
     public static void BeginExit(Window window, UIElement content, Action completed)
@@ -82,11 +61,11 @@ internal static class PanelAnimator
         void OnCompleted()
         {
             window.Cloak();
-            content.Opacity = 1;
             completed();
         }
 
         window.Topmost = false;
+        var slide = SlideOf(content);
 
         if (!SystemParameters.ClientAreaAnimation)
         {
@@ -94,33 +73,32 @@ internal static class PanelAnimator
             return;
         }
 
-        var move = new DoubleAnimation
-        {
-            From = window.Left,
-            To = window.Left + AnimationOffset,
-            Duration = ExitDuration,
-            FillBehavior = FillBehavior.Stop,
-            EasingFunction = new QuinticEase { EasingMode = EasingMode.EaseOut },
-        };
-        Storyboard.SetTarget(move, window);
-        Storyboard.SetTargetProperty(move, new PropertyPath(Window.LeftProperty));
+        var ease = new CubicEase { EasingMode = EasingMode.EaseIn };
+        var move = new DoubleAnimation(SlideDistance, ExitDuration) { EasingFunction = ease };
+        var fade = new DoubleAnimation(0, ExitDuration) { EasingFunction = ease };
+        move.Completed += (_, _) => OnCompleted();
 
-        var fade = new DoubleAnimation
-        {
-            From = 1,
-            To = 0,
-            Duration = ExitDuration,
-            FillBehavior = FillBehavior.Stop,
-            EasingFunction = new QuinticEase { EasingMode = EasingMode.EaseOut },
-        };
-        fade.Completed += (_, _) => content.Opacity = 0;
-        Storyboard.SetTarget(fade, content);
-        Storyboard.SetTargetProperty(fade, new PropertyPath(UIElement.OpacityProperty));
+        slide.BeginAnimation(TranslateTransform.XProperty, move);
+        content.BeginAnimation(UIElement.OpacityProperty, fade);
+    }
 
-        var storyboard = new Storyboard { FillBehavior = FillBehavior.Stop };
-        storyboard.Children.Add(move);
-        storyboard.Children.Add(fade);
-        storyboard.Completed += (_, _) => OnCompleted();
-        storyboard.Begin(window);
+    private static TranslateTransform SlideOf(UIElement content)
+    {
+        if (content.RenderTransform is TranslateTransform existing)
+        {
+            return existing;
+        }
+
+        var slide = new TranslateTransform();
+        content.RenderTransform = slide;
+        return slide;
+    }
+
+    private static void Stop(UIElement content, TranslateTransform slide)
+    {
+        slide.BeginAnimation(TranslateTransform.XProperty, null);
+        content.BeginAnimation(UIElement.OpacityProperty, null);
+        slide.X = 0;
+        content.Opacity = 1;
     }
 }
