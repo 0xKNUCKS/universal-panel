@@ -10,7 +10,11 @@ using Windows.Win32.UI.HiDpi;
 
 namespace UniversalPanel.Native;
 
-internal readonly record struct PixelRect(int X, int Y, int Width, int Height);
+/// <param name="Left">Left edge of the monitor's work area, the furthest the panel may extend.</param>
+internal readonly record struct PixelRect(int X, int Y, int Width, int Height)
+{
+    public int Left { get; init; }
+}
 
 internal static class MonitorPlacement
 {
@@ -34,7 +38,7 @@ internal static class MonitorPlacement
         }
 
         var work = info.rcWork;
-        int width = (int)Math.Round(widthDip * dpiX / 96.0);
-        return new PixelRect(work.right - width, work.top, width, work.bottom - work.top);
+        int width = Math.Min((int)Math.Round(widthDip * dpiX / 96.0), work.right - work.left);
+        return new PixelRect(work.right - width, work.top, width, work.bottom - work.top) { Left = work.left };
     }
 }

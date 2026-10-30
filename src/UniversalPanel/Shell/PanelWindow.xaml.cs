@@ -17,7 +17,8 @@ namespace UniversalPanel.Shell;
 
 public partial class PanelWindow : FluentWindow, IModuleHost
 {
-    private const double PanelWidthDip = 460;
+    private readonly PanelSettings _settings = PanelSettings.Load();
+    private PixelRect _rect;
 
     private readonly Dictionary<IPanelModule, FrameworkElement> _views = [];
     private IPanelModule? _active;
@@ -70,7 +71,8 @@ public partial class PanelWindow : FluentWindow, IModuleHost
         _isOpen = true;
         Show();
 
-        var rect = MonitorPlacement.RightEdgeOfMonitorUnderCursor(PanelWidthDip);
+        var rect = MonitorPlacement.RightEdgeOfMonitorUnderCursor(_settings.PanelWidth);
+        _rect = rect;
         // Twice on purpose: the first move can land on a monitor with a different DPI, and WPF
         // then rescales the window (WM_DPICHANGED) during that call. The second call sets the
         // exact rect at the new DPI.
@@ -174,6 +176,22 @@ public partial class PanelWindow : FluentWindow, IModuleHost
     }
 
     private void OnHideClick(object sender, RoutedEventArgs e) => HidePanel();
+
+    // Left-edge resize: the right edge stays put. HorizontalChange is incremental here because the
+    // thumb moves with the window's left edge on every step.
+    private void OnResizeDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+    {
+        double scale = System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleX;
+        double width = Math.Clamp(_settings.PanelWidth - e.HorizontalChange, PanelSettings.MinWidth, PanelSettings.MaxWidth);
+        int right = _rect.X + _rect.Width;
+        int px = Math.Min((int)Math.Round(width * scale), right - _rect.Left);
+        _settings.PanelWidth = px / scale;
+        _rect = new PixelRect(right - px, _rect.Y, px, _rect.Height) { Left = _rect.Left };
+        this.SetWindowPos(_rect.X, _rect.Y, _rect.Width, _rect.Height);
+    }
+
+    private void OnResizeCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e) =>
+        _settings.Save();
 
     private void OnModuleSelectionChanged(object sender, SelectionChangedEventArgs e)
     {

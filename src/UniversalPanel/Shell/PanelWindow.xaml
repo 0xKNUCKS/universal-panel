@@ -85,6 +85,17 @@
       />
     </Grid>
 
+    <!--  Resize grip on the left edge (the panel is docked right, so this edge moves)  -->
+    <Thumb
+      Grid.ColumnSpan="2"
+      Width="6"
+      HorizontalAlignment="Left"
+      Cursor="SizeWE"
+      DragCompleted="OnResizeCompleted"
+      DragDelta="OnResizeDelta"
+      Opacity="0"
+    />
+
     <!--  Overlay for in-panel dialogs (IModuleHost.ConfirmAsync)  -->
     <ui:ContentDialogHost x:Name="DialogHost" Grid.ColumnSpan="2" />
   </Grid>
