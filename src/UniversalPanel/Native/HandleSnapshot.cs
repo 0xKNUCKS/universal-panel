@@ -8,9 +8,13 @@
 //   phlib/include/hndlinfo.h  PH_FIRST_OBJECT_TYPE / PH_NEXT_OBJECT_TYPE alignment
 //   phnt/include/ntpsapi.h, ntobapi.h  struct layouts
 // https://github.com/winsiderss/systeminformer @ c2f1489890f14de76b985c0142cbad154d92623d
-// Deviation: System Informer kills its native worker thread on timeout. .NET can't safely kill a
-// thread, so a timed-out worker is abandoned instead (at most one at a time) and the remaining File
-// names in that pass are skipped. The worker closes its duplicated handle when the call returns.
+// Deviations:
+//  - System Informer kills its native worker thread on timeout. .NET can't safely kill a thread, so
+//    a timed-out worker is abandoned (it closes its duplicated handle whenever the call returns) and a
+//    fresh one takes over, with a hard cap on abandoned threads. Hung handles are remembered per
+//    process instance, so later loads skip them instantly instead of hanging again.
+//  - Timeout 300 ms instead of 1 s: a name query that isn't hung returns in microseconds, so the
+//    timeout only has to separate "hung" from "slow", and every hang used to cost a full second.
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -33,7 +37,9 @@ internal static unsafe partial class HandleSnapshot
     private const int STATUS_BUFFER_TOO_SMALL = unchecked((int)0xC0000023);
     private const int ERROR_ACCESS_DENIED = 5;
     private const int ERROR_INVALID_PARAMETER = 87;
-    private static readonly TimeSpan FileNameTimeout = TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan FileNameTimeout = TimeSpan.FromMilliseconds(300);
+    private const int MaxRememberedHungHandles = 1024;
+    private static readonly HashSet<(ProcessKey Process, nint Handle)> HungHandles = [];
 
     private static readonly Lock TypesLock = new();
     // One capture at a time: the timed worker is shared and assumes a single caller.
@@ -88,7 +94,7 @@ internal static unsafe partial class HandleSnapshot
             var entries = QueryHandleTable(process, processName);
             var types = GetTypeNames();
             var paths = new PathTranslator();
-            var names = new NameResolver(process, canDuplicate, processNames, paths);
+            var names = new NameResolver(key, process, canDuplicate, processNames, paths);
 
             var records = new List<HandleRecord>(entries.Count);
             foreach (var entry in entries)
@@ -287,9 +293,8 @@ internal static unsafe partial class HandleSnapshot
     private static nint Raw(HANDLE handle) => (nint)handle.Value;
 
     /// <summary>Resolves handle names for one capture pass.</summary>
-    private sealed class NameResolver(HANDLE process, bool canDuplicate, IReadOnlyDictionary<int, string> processNames, PathTranslator paths)
+    private sealed class NameResolver(ProcessKey key, HANDLE process, bool canDuplicate, IReadOnlyDictionary<int, string> processNames, PathTranslator paths)
     {
-        private bool _skipFileNames;
 
         public string Resolve(nint handleValue, string type)
         {
@@ -378,10 +383,15 @@ internal static unsafe partial class HandleSnapshot
 
         private string QueryFileName(nint handleValue)
         {
-            if (_skipFileNames || TimedWorker.IsBlocked)
+            // Captures are serialized (CaptureLock), so HungHandles needs no lock of its own.
+            if (HungHandles.Contains((key, handleValue)))
             {
-                _skipFileNames = true;
-                return "(name skipped: an earlier query hung)";
+                return "(name query hung earlier)";
+            }
+
+            if (TimedWorker.IsExhausted)
+            {
+                return "(name skipped: too many hung queries)";
             }
 
             var dup = Duplicate(handleValue, 0);
@@ -409,7 +419,12 @@ internal static unsafe partial class HandleSnapshot
                 return Translate("File", name ?? string.Empty);
             }
 
-            _skipFileNames = true;
+            if (HungHandles.Count >= MaxRememberedHungHandles)
+            {
+                HungHandles.Clear();
+            }
+
+            HungHandles.Add((key, handleValue));
             return "(name query timed out)";
         }
 
@@ -422,67 +437,67 @@ internal static unsafe partial class HandleSnapshot
     }
 
     /// <summary>
-    /// One background thread that runs a query with a timeout. If a query hangs, that thread is
-    /// abandoned (it stays blocked until the I/O it waits on completes, then becomes reusable) and
-    /// no new worker is started while it's stuck, so at most one thread can ever be stuck.
+    /// Runs a query on a worker thread with a timeout. A worker whose query hangs is abandoned (it
+    /// stays blocked until the I/O it waits on completes, then returns to the pool) and the next
+    /// query gets another worker. At most <see cref="MaxAbandoned"/> threads can be stuck at once;
+    /// past that, callers skip queries until one comes back.
     /// </summary>
     private static class TimedWorker
     {
+        private const int MaxAbandoned = 4;
         private static readonly Lock Gate = new();
-        private static Worker? _ready;
-        private static Worker? _stuck;
+        private static readonly Stack<Worker> Idle = new();
+        private static readonly List<Worker> Abandoned = [];
 
-        /// <summary>True while an abandoned query is still hung; reaps the thread once it returns.</summary>
-        public static bool IsBlocked
+        /// <summary>True when the cap of stuck threads is reached; reaps any that came back first.</summary>
+        public static bool IsExhausted
         {
             get
             {
                 lock (Gate)
                 {
-                    return IsBlockedLocked();
+                    Reap();
+                    return Abandoned.Count >= MaxAbandoned;
                 }
             }
         }
 
-        private static bool IsBlockedLocked()
+        private static void Reap()
         {
-            if (_stuck is null)
+            for (int i = Abandoned.Count - 1; i >= 0; i--)
             {
-                return false;
+                if (Abandoned[i].Done.WaitOne(0))
+                {
+                    Idle.Push(Abandoned[i]); // Its call finally returned; reuse it.
+                    Abandoned.RemoveAt(i);
+                }
             }
-
-            if (!_stuck.Done.WaitOne(0))
-            {
-                return true;
-            }
-
-            _ready = _stuck; // It came back; reuse it.
-            _stuck = null;
-            return false;
         }
 
-        /// <summary>Only call when <see cref="IsBlocked"/> is false (captures are serialized).</summary>
+        /// <summary>Only call when <see cref="IsExhausted"/> is false (captures are serialized).</summary>
         public static bool TryRun(Func<string?> work, TimeSpan timeout, out string? result)
         {
             Worker worker;
             lock (Gate)
             {
-                Debug.Assert(!IsBlockedLocked(), "check IsBlocked before duplicating a handle for the worker");
-                worker = _ready ??= new Worker();
+                Debug.Assert(Abandoned.Count < MaxAbandoned, "check IsExhausted before duplicating a handle for the worker");
+                worker = Idle.Count > 0 ? Idle.Pop() : new Worker();
             }
 
-            if (worker.Run(work, timeout, out result))
-            {
-                return true;
-            }
-
+            bool finished = worker.Run(work, timeout, out result);
             lock (Gate)
             {
-                _ready = null;
-                _stuck = worker;
+                if (finished)
+                {
+                    Idle.Push(worker);
+                }
+                else
+                {
+                    Abandoned.Add(worker);
+                }
             }
 
-            return false;
+            return finished;
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1001", Justification =
