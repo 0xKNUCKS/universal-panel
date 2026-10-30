@@ -1,16 +1,16 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Globalization;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using UniversalPanel.Diagnostics;
 using UniversalPanel.Native;
 
 namespace UniversalPanel.Modules.Processes.Details;
 
 /// <summary>
-/// Per-process page: threads (live, from the shared sampler's snapshot), and later modules and
-/// handles. One instance is reused; <see cref="Show"/> retargets it.
+/// Per-process page: threads (live, from the shared sampler's snapshot), modules and handles.
+/// One instance is reused; <see cref="Show"/> retargets it.
 /// </summary>
 internal sealed partial class ProcessDetailsView : UserControl
 {
@@ -30,6 +30,7 @@ internal sealed partial class ProcessDetailsView : UserControl
         _threadsView.SortDescriptions.Add(new SortDescription(nameof(ThreadRow.Cpu), ListSortDirection.Descending));
         _threadsView.SortDescriptions.Add(new SortDescription(nameof(ThreadRow.Tid), ListSortDirection.Ascending));
         ThreadsGrid.ItemsSource = _threadsView;
+        ModulesGrid.ItemsSource = _modules;
     }
 
     internal IModuleHost Host { get; }
@@ -51,6 +52,10 @@ internal sealed partial class ProcessDetailsView : UserControl
         _sortedOnce = false;
         ThreadsSummary.Text = "Loading…";
         Tabs.SelectedIndex = 0;
+
+        _modules.Clear();
+        _moduleRecords = [];
+        _ = Guard.RunAsync("Details.Modules", LoadModulesAsync);
     }
 
     /// <summary>Moves keyboard focus into the page so Backspace and the grid keys reach it.</summary>
@@ -110,9 +115,6 @@ internal sealed partial class ProcessDetailsView : UserControl
         ThreadsSummary.Text = $"{threads.Count} threads";
     }
 
-    private static string DescribeAddress(ulong? address) =>
-        address is { } a ? "0x" + a.ToString("X", CultureInfo.InvariantCulture) : "(unavailable)";
-
     private void OnBackClick(object sender, System.Windows.RoutedEventArgs e) => _back();
 
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
@@ -126,9 +128,14 @@ internal sealed partial class ProcessDetailsView : UserControl
 
     private void OnRowToolTipOpening(object sender, ToolTipEventArgs e)
     {
-        if (sender is DataGridRow { Item: ThreadRow row } container)
+        if (sender is DataGridRow container)
         {
-            container.ToolTip = row.Details;
+            container.ToolTip = container.Item switch
+            {
+                ThreadRow thread => thread.Details,
+                ModuleRow module => $"{module.Path}\nBase {module.BaseText} · size {module.SizeText}",
+                _ => null,
+            };
         }
     }
 }

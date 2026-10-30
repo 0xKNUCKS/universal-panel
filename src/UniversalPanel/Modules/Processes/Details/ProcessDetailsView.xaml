@@ -118,6 +118,83 @@
           />
         </Grid>
       </TabItem>
+
+      <TabItem Header="Modules">
+        <Grid Margin="0,8,0,0">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+          <ui:DataGrid
+            x:Name="ModulesGrid"
+            Grid.Row="0"
+            AutoGenerateColumns="False"
+            CanUserAddRows="False"
+            CanUserDeleteRows="False"
+            CanUserReorderColumns="False"
+            CanUserResizeRows="False"
+            ContextMenuOpening="OnModulesContextMenuOpening"
+            EnableRowVirtualization="True"
+            FontSize="13"
+            GridLinesVisibility="None"
+            HeadersVisibility="Column"
+            IsReadOnly="True"
+            PreviewMouseRightButtonDown="OnModulesRightButtonDown"
+            RowHeight="28"
+            RowStyle="{StaticResource DetailRow}"
+            SelectionMode="Single"
+            TextColumnElementStyle="{StaticResource CellText}"
+            VirtualizingPanel.IsVirtualizing="True"
+            VirtualizingPanel.VirtualizationMode="Recycling"
+          >
+            <ui:DataGrid.ContextMenu>
+              <ContextMenu>
+                <MenuItem Click="OnModuleOpenLocation" Header="Open file location">
+                  <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="FolderOpen24" />
+                  </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Click="OnModuleCopyPath" Header="Copy path">
+                  <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="Copy24" />
+                  </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Click="OnModuleCopyBase" Header="Copy base address">
+                  <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="Copy24" />
+                  </MenuItem.Icon>
+                </MenuItem>
+              </ContextMenu>
+            </ui:DataGrid.ContextMenu>
+            <ui:DataGrid.Columns>
+              <DataGridTextColumn Width="*" Binding="{Binding Name}" Header="Name" SortMemberPath="Name" />
+              <DataGridTextColumn Width="140" Binding="{Binding BaseText}" Header="Base" SortMemberPath="BaseAddress" />
+              <DataGridTextColumn Width="84" Binding="{Binding SizeText}" Header="Size" SortMemberPath="Size" />
+            </ui:DataGrid.Columns>
+          </ui:DataGrid>
+          <Grid Grid.Row="1" Margin="2,8,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <ui:TextBlock
+              x:Name="ModulesSummary"
+              VerticalAlignment="Center"
+              Appearance="Secondary"
+              FontTypography="Caption"
+              TextWrapping="Wrap"
+            />
+            <ui:Button
+              Grid.Column="1"
+              Padding="8,4"
+              Appearance="Transparent"
+              Click="OnRefreshModules"
+              Content="Refresh"
+              Icon="{ui:SymbolIcon ArrowClockwise24}"
+            />
+          </Grid>
+        </Grid>
+      </TabItem>
     </TabControl>
   </Grid>
 </UserControl>
