@@ -10,3 +10,7 @@ SetWindowLong
 SetWindowPos
 WINDOW_EX_STYLE
 SetDefaultDllDirectories
+CloseHandle
+GetSystemTimes
+OpenProcess
+QueryFullProcessImageName

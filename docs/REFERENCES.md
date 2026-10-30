@@ -53,6 +53,7 @@ Reference snapshots (shallow clones, read 2026-10-29):
 | Our file | Mirrors | What was taken |
 |---|---|---|
 | `src/UniversalPanel/Native/ProcessSnapshot.cs` | System Informer `phnt/include/ntexapi.h` `SYSTEM_PROCESS_INFORMATION`; `phlib/native.c` `PhEnumProcessesEx` | Field layout (0x100 bytes on x64); one `NtQuerySystemInformation(SystemProcessInformation)` call, grow on `STATUS_INFO_LENGTH_MISMATCH` / `STATUS_BUFFER_TOO_SMALL`, keep the size for next time; `PagefileUsage` as private bytes |
+| `src/UniversalPanel/Modules/Processes/ProcessSampler.cs` | System Informer `SystemInformer/procprv.c` (time-based CPU mode) | CPU % = process (kernel + user) delta / system (kernel incl. idle + user) delta; processes keyed by PID + create time so reused PIDs don't inherit history |
 
 ### Error handling
 

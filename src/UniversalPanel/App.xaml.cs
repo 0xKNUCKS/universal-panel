@@ -7,6 +7,7 @@ using H.NotifyIcon;
 using H.NotifyIcon.Core;
 using UniversalPanel.Diagnostics;
 using UniversalPanel.Modules;
+using UniversalPanel.Modules.Processes;
 using UniversalPanel.Shell;
 using Windows.Win32;
 using Windows.Win32.System.LibraryLoader;
@@ -67,7 +68,7 @@ public partial class App : Application, ISingleInstanceApp
     {
         base.OnStartup(e);
 
-        _panel = new PanelWindow(PlaceholderModule.Defaults);
+        _panel = new PanelWindow([new ProcessesModule(), .. PlaceholderModule.Defaults]);
         _panel.Initialize();
         _tray = CreateTrayIcon();
 

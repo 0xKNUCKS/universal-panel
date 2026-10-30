@@ -34,8 +34,6 @@ internal sealed class PlaceholderModule(string id, string title, SymbolRegular i
 
     public static IReadOnlyList<IPanelModule> Defaults { get; } =
     [
-        new PlaceholderModule("processes", "Processes", SymbolRegular.Pulse24,
-            "Live process list with kill, suspend/resume, priority, modules, handles and threads."),
         new PlaceholderModule("launcher", "Tools", SymbolRegular.Apps24,
             "One-click launcher for IDA, DIE, Ghidra, HxD, Postman and other tools, with their real icons."),
         new PlaceholderModule("python", "Python", SymbolRegular.Code24,
