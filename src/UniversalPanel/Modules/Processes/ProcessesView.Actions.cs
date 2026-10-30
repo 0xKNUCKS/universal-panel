@@ -37,19 +37,9 @@ internal sealed partial class ProcessesView
 
     private void OnCopyPath(object sender, RoutedEventArgs e)
     {
-        if (Selected is not { ImagePath: { } path })
+        if (Selected is { ImagePath: { } path })
         {
-            return;
-        }
-
-        try
-        {
-            Clipboard.SetDataObject(path, copy: true);
-        }
-        catch (System.Runtime.InteropServices.ExternalException)
-        {
-            // CLIPBRD_E_CANT_OPEN: another app holds the clipboard open. Expected, not a bug.
-            Host.ShowNotice("Clipboard busy", "Another app is using the clipboard. Try again.", InfoBarSeverity.Warning);
+            ClipboardText.Copy(Host, path);
         }
     }
 
