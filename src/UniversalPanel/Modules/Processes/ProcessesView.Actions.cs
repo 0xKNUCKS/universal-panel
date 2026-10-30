@@ -31,6 +31,16 @@ internal sealed partial class ProcessesView
         }
 
         UpdatePriorityMenu(row);
+        OpenLocationItem.IsEnabled = row.ImagePath is not null;
+    }
+
+    private void OnOpenLocation(object sender, RoutedEventArgs e)
+    {
+        if (Selected is { ImagePath: { } path })
+        {
+            // Explorer takes focus, so the panel hides itself as usual; that's the point of the action.
+            Guard.Run("Processes.OpenLocation", () => ShellReveal.SelectInExplorer(path));
+        }
     }
 
     private void OnGridKeyDown(object sender, KeyEventArgs e)

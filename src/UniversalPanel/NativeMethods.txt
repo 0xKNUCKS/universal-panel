@@ -17,3 +17,6 @@ QueryFullProcessImageName
 GetProcessTimes
 TerminateProcess
 SetPriorityClass
+ILFree
+SHOpenFolderAndSelectItems
+SHParseDisplayName
