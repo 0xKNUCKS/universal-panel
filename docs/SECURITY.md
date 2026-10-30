@@ -13,6 +13,8 @@ functionality; where a trade-off exists it is written down here.
 | `App.OpenLogFolder` | Absolute path to `%WINDIR%\explorer.exe`, `UseShellExecute=false`, argument via `ArgumentList` | No `PATH` lookup, no shell parsing/quoting injection. |
 | `Log` | Logs under `%LOCALAPPDATA%\UniversalPanel\logs` (user-only ACL by default), bounded queue, per-day size cap, 7-day retention | A crash loop can't fill the disk; logs aren't readable by other users. |
 | `app.manifest` | `asInvoker` (no elevation yet), x64 only | Least privilege until a module actually needs admin. |
+| `ProcessControl` | Each action opens the process with only the right it needs, then checks the creation time still matches the sampled row before acting | A PID reused between sampling and the click can't redirect terminate/suspend to a different process. |
+| `ProcessGuard` | Critical processes (System Informer's list, System PID, break-on-termination) get an explicit warning; the panel refuses to suspend itself | Prevents one-click bugchecks, logoffs or a panel that can never resume. Not a restriction: the action still runs after confirming. |
 
 ## Rules for upcoming modules
 

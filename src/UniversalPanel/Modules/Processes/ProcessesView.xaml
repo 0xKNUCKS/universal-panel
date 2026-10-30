@@ -30,18 +30,47 @@
       CanUserDeleteRows="False"
       CanUserReorderColumns="False"
       CanUserResizeRows="False"
+      ContextMenuOpening="OnGridContextMenuOpening"
       EnableRowVirtualization="True"
       FontSize="13"
       GridLinesVisibility="None"
       RowHeight="28"
       HeadersVisibility="Column"
       IsReadOnly="True"
+      PreviewKeyDown="OnGridKeyDown"
+      PreviewMouseRightButtonDown="OnGridRightButtonDown"
       SelectionMode="Single"
       SelectionUnit="FullRow"
       Sorting="OnSorting"
       VirtualizingPanel.IsVirtualizing="True"
       VirtualizingPanel.VirtualizationMode="Recycling"
     >
+      <ui:DataGrid.TextColumnElementStyle>
+        <!--  WPF-UI gives every cell TextBlock a Copy/Cut/Paste menu, which would shadow the row menu.  -->
+        <Style BasedOn="{StaticResource DefaultDataGridTextElementStyle}" TargetType="TextBlock">
+          <Setter Property="ContextMenu" Value="{x:Null}" />
+        </Style>
+      </ui:DataGrid.TextColumnElementStyle>
+      <ui:DataGrid.ContextMenu>
+        <ContextMenu>
+          <MenuItem Click="OnEndProcess" Header="End process" InputGestureText="Del">
+            <MenuItem.Icon>
+              <ui:SymbolIcon Symbol="DismissCircle24" />
+            </MenuItem.Icon>
+          </MenuItem>
+          <Separator />
+          <MenuItem Click="OnSuspend" Header="Suspend">
+            <MenuItem.Icon>
+              <ui:SymbolIcon Symbol="Pause24" />
+            </MenuItem.Icon>
+          </MenuItem>
+          <MenuItem Click="OnResume" Header="Resume">
+            <MenuItem.Icon>
+              <ui:SymbolIcon Symbol="Play24" />
+            </MenuItem.Icon>
+          </MenuItem>
+        </ContextMenu>
+      </ui:DataGrid.ContextMenu>
       <ui:DataGrid.RowStyle>
         <!--  WPF-UI keys its row style; basing on the implicit type style would pick WPF's stock white rows.  -->
         <Style BasedOn="{StaticResource DefaultDataGridRowStyle}" TargetType="DataGridRow">
