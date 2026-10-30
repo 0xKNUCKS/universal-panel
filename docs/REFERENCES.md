@@ -86,7 +86,7 @@ documented `DWMWA_SYSTEMBACKDROP_TYPE` path instead, which avoids the layered-wi
 
 | Module | Primary reference | Secondary |
 |---|---|---|
-| Process monitor | System Informer (`winsiderss/systeminformer`), `NtQuerySystemInformation(SystemProcessInformation)` | Vanara (`dahall/Vanara`) for typed ntdll/advapi32 wrappers |
+| Process details (modules, handles, threads) | System Informer `SystemInformer/modprv.c`, `hndlprv.c`, `thrdprv.c` (list, process, threads done; see Processes above) | Vanara (`dahall/Vanara`) for typed ntdll/advapi32 wrappers |
 | Tools launcher / icons | PowerToys Run `Microsoft.Plugin.Program` (`IShellItemImageFactory`, `.lnk` resolution) | Flow Launcher `Plugins/Flow.Launcher.Plugin.Program` |
 | Python console | `code.InteractiveConsole` driver (CPython stdlib), CliWrap for piping | Job Objects with `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` |
 | Network monitor | System Informer network tab, `GetExtendedTcpTable` / `GetExtendedUdpTable` | TinyWall; TraceEvent for ETW bandwidth |

@@ -8,7 +8,14 @@ C# / .NET 10 / WPF, with [WPF-UI](https://github.com/lepoco/wpfui) for Fluent st
 ## Status
 
 The shell works: tray icon, hotkey, slide-in panel, module rail, error handling and logging.
-All modules are still placeholders.
+
+| Module | State |
+|---|---|
+| Processes | Live list (CPU, memory, filter, sort, details tooltip); end, suspend, resume, priority, open file location, copy path. Critical processes get an explicit warning. Modules / handles / threads views not built yet. |
+| Tools, Python, Network | Placeholders |
+
+The process list samples once per second only while it's on screen (about 2.5% of one core while open, 0 while hidden).
+Without elevation, actions on other users' and protected processes fail with "access denied", by design.
 
 ## Usage
 
@@ -16,6 +23,7 @@ All modules are still placeholders.
 |---|---|
 | Toggle panel | Alt + backtick (`` ` ``), or left-click the tray icon |
 | Hide | `Esc`, click outside, or the `>` button |
+| Process actions | Right-click a process; `Del` ends the selected one (after confirming) |
 | Logs / exit | Right-click the tray icon |
 
 Logs: `%LOCALAPPDATA%\UniversalPanel\logs`.
