@@ -108,7 +108,7 @@ internal sealed partial class ProcessesView : UserControl
         {
             ulong used = frame.MemoryTotal - frame.MemoryAvailable;
             text += string.Create(culture,
-                $"\nMemory {100.0 * used / frame.MemoryTotal:0.00}% · {ProcessRow.FormatBytes(used)} of {ProcessRow.FormatBytes(frame.MemoryTotal)}");
+                $" · Memory {100.0 * used / frame.MemoryTotal:0.00}% · {ProcessRow.FormatBytes(used)} of {ProcessRow.FormatBytes(frame.MemoryTotal)}");
         }
 
         return text;
