@@ -34,3 +34,9 @@ GetCurrentProcess
 GetProcessId
 GetThreadId
 QueryDosDevice
+DestroyIcon
+GetDpiForSystem
+GetSystemMetricsForDpi
+SHDefExtractIcon
+SHGetStockIconInfo
+GetSystemMetrics
