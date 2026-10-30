@@ -84,5 +84,8 @@
         IsOpen="False"
       />
     </Grid>
+
+    <!--  Overlay for in-panel dialogs (IModuleHost.ConfirmAsync)  -->
+    <ui:ContentDialogHost x:Name="DialogHost" Grid.ColumnSpan="2" />
   </Grid>
 </ui:FluentWindow>

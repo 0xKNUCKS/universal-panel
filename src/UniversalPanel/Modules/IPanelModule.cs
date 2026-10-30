@@ -17,7 +17,7 @@ internal interface IPanelModule
     SymbolRegular Icon { get; }
 
     /// <summary>Called once, lazily, the first time the module is selected.</summary>
-    FrameworkElement CreateView();
+    FrameworkElement CreateView(IModuleHost host);
 
     /// <summary>Module became visible (panel shown and module selected). Start timers/sampling here.</summary>
     void OnActivated();

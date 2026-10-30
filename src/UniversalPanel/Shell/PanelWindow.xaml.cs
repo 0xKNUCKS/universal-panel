@@ -15,7 +15,7 @@ using TextBlock = Wpf.Ui.Controls.TextBlock;
 
 namespace UniversalPanel.Shell;
 
-public partial class PanelWindow : FluentWindow
+public partial class PanelWindow : FluentWindow, IModuleHost
 {
     private const double PanelWidthDip = 460;
 
@@ -23,6 +23,7 @@ public partial class PanelWindow : FluentWindow
     private IPanelModule? _active;
     private bool _isOpen;
     private int _autoHideSuppressions;
+    private CancellationTokenSource? _dialogCts;
 
     internal PanelWindow(IReadOnlyList<IPanelModule> modules)
     {
@@ -88,6 +89,7 @@ public partial class PanelWindow : FluentWindow
         }
 
         _isOpen = false;
+        _dialogCts?.Cancel(); // An open confirmation must not survive the panel being dismissed.
         DeactivateModule(_active);
         PanelAnimator.BeginExit(this, Root, () =>
         {
@@ -118,6 +120,39 @@ public partial class PanelWindow : FluentWindow
         NoticeBar.Message = message;
         NoticeBar.Severity = severity;
         NoticeBar.IsOpen = true;
+    }
+
+    public async Task<bool> ConfirmAsync(string title, string message, string confirmText, bool destructive)
+    {
+        _dialogCts?.Cancel();
+        using var cts = new CancellationTokenSource();
+        _dialogCts = cts;
+
+        var dialog = new ContentDialog(DialogHost)
+        {
+            Title = title,
+            Content = new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap },
+            PrimaryButtonText = confirmText,
+            CloseButtonText = "Cancel",
+            PrimaryButtonAppearance = destructive ? ControlAppearance.Danger : ControlAppearance.Primary,
+            DefaultButton = ContentDialogButton.Close,
+        };
+
+        try
+        {
+            return await dialog.ShowAsync(cts.Token) == ContentDialogResult.Primary;
+        }
+        catch (OperationCanceledException)
+        {
+            return false;
+        }
+        finally
+        {
+            if (_dialogCts == cts)
+            {
+                _dialogCts = null;
+            }
+        }
     }
 
     protected override void OnDeactivated(EventArgs e)
@@ -172,7 +207,7 @@ public partial class PanelWindow : FluentWindow
         // Failed views aren't cached, so re-selecting the module retries.
         return Guard.Run(
             $"{module.Id}.CreateView",
-            () => _views[module] = module.CreateView(),
+            () => _views[module] = module.CreateView(this),
             ex => CreateErrorView(module, ex));
     }
 

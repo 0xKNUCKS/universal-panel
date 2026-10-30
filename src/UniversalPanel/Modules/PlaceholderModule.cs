@@ -12,7 +12,7 @@ internal sealed class PlaceholderModule(string id, string title, SymbolRegular i
     public string Title => title;
     public SymbolRegular Icon => icon;
 
-    public FrameworkElement CreateView() => new StackPanel
+    public FrameworkElement CreateView(IModuleHost host) => new StackPanel
     {
         Margin = new Thickness(0, 8, 0, 0),
         Children =
