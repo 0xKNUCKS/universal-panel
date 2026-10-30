@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -8,6 +8,8 @@ using H.NotifyIcon.Core;
 using UniversalPanel.Diagnostics;
 using UniversalPanel.Modules;
 using UniversalPanel.Shell;
+using Windows.Win32;
+using Windows.Win32.System.LibraryLoader;
 using Wpf.Ui.Controls;
 using MenuItem = System.Windows.Controls.MenuItem;
 using MessageBox = System.Windows.MessageBox;
@@ -24,6 +26,7 @@ public partial class App : Application, ISingleInstanceApp
     [STAThread]
     public static void Main()
     {
+        HardenDllSearchPath();
         Log.Start();
         Log.Info("App", $"Starting {typeof(App).Assembly.GetName().Version} on {Environment.OSVersion}, x64={Environment.Is64BitProcess}");
 
@@ -131,5 +134,19 @@ public partial class App : Application, ISingleInstanceApp
         var startInfo = new ProcessStartInfo(explorer) { UseShellExecute = false };
         startInfo.ArgumentList.Add(Log.Directory);
         Process.Start(startInfo)?.Dispose();
+    }
+
+    /// <summary>
+    /// Removes the current directory and PATH from the native DLL search order for this process,
+    /// so a planted DLL next to a file we open (or in a writable PATH entry) can't be loaded.
+    /// The app directory, System32 and explicitly added directories are still searched.
+    /// </summary>
+    private static void HardenDllSearchPath()
+    {
+        if (OperatingSystem.IsWindowsVersionAtLeast(10)
+            && !PInvoke.SetDefaultDllDirectories(LOAD_LIBRARY_FLAGS.LOAD_LIBRARY_SEARCH_DEFAULT_DIRS))
+        {
+            Debug.WriteLine("SetDefaultDllDirectories failed.");
+        }
     }
 }

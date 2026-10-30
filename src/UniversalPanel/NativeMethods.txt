@@ -9,3 +9,4 @@ SetForegroundWindow
 SetWindowLong
 SetWindowPos
 WINDOW_EX_STYLE
+SetDefaultDllDirectories

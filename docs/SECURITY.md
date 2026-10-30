@@ -7,6 +7,7 @@ functionality; where a trade-off exists it is written down here.
 
 | Where | What | Why |
 |---|---|---|
+| `App.HardenDllSearchPath` | `SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS)` at the top of `Main` | Removes the current directory and `PATH` from native DLL search order. Blocks DLL planting via a malicious DLL next to a file/folder we touch, or in a user-writable `PATH` entry. App dir and System32 are still searched. |
 | `SingleInstance` | Pipe created with `PipeOptions.CurrentUserOnly` (server and client); mutex in `Local\` | Other users / sessions can't connect to or squat the pipe. The server never reads from the pipe, so a connection can only trigger "show panel". |
 | `HotkeyService` | `RegisterHotKey` (via NHotkey), never a low-level keyboard hook | We never see keystrokes, and hooks are an AV/EDR red flag. |
 | `App.OpenLogFolder` | Absolute path to `%WINDIR%\explorer.exe`, `UseShellExecute=false`, argument via `ArgumentList` | No `PATH` lookup, no shell parsing/quoting injection. |
