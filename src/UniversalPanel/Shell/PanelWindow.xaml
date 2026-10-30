@@ -1,0 +1,88 @@
+<ui:FluentWindow
+  x:Class="UniversalPanel.Shell.PanelWindow"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+  Title="Universal Panel"
+  Width="460"
+  Height="800"
+  ExtendsContentIntoTitleBar="True"
+  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+  PreviewKeyDown="OnPreviewKeyDown"
+  ResizeMode="NoResize"
+  ShowInTaskbar="False"
+  Topmost="True"
+  UseLayoutRounding="True"
+  WindowBackdropType="Acrylic"
+  WindowCornerPreference="Round"
+>
+  <Grid x:Name="Root">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="56" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
+
+    <!--  Module rail  -->
+    <DockPanel Grid.Column="0" Margin="0,8,0,8">
+      <ui:Button
+        Width="40"
+        Height="40"
+        Padding="0"
+        HorizontalAlignment="Center"
+        Appearance="Transparent"
+        Click="OnHideClick"
+        DockPanel.Dock="Bottom"
+        Icon="{ui:SymbolIcon ChevronRight24}"
+        ToolTip="Hide (Esc)"
+      />
+      <ListBox
+        x:Name="ModuleList"
+        Background="Transparent"
+        BorderThickness="0"
+        SelectionChanged="OnModuleSelectionChanged"
+      >
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <ui:SymbolIcon
+              Margin="0,6"
+              HorizontalAlignment="Center"
+              FontSize="22"
+              Symbol="{Binding Icon}"
+              ToolTip="{Binding Title}"
+            />
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </DockPanel>
+
+    <!--  Active module  -->
+    <Grid Grid.Column="1" Margin="8,14,16,12">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
+      <ui:TextBlock
+        x:Name="ModuleTitle"
+        Grid.Row="0"
+        Margin="0,0,0,8"
+        FontTypography="Subtitle"
+      />
+
+      <ContentControl
+        x:Name="ModuleHost"
+        Grid.Row="1"
+        Focusable="False"
+      />
+
+      <ui:InfoBar
+        x:Name="NoticeBar"
+        Grid.Row="2"
+        Margin="0,8,0,0"
+        IsClosable="True"
+        IsOpen="False"
+      />
+    </Grid>
+  </Grid>
+</ui:FluentWindow>

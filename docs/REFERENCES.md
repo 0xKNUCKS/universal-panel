@@ -38,6 +38,9 @@ Reference snapshots (shallow clones, read 2026-10-29):
 | Our file | Mirrors | What was taken |
 |---|---|---|
 | `src/UniversalPanel/Native/WindowExtensions.cs` | EarTrumpet `EarTrumpet/Extensions/WindowExtensions.cs` | `Cloak` (`DWMWA_CLOAK`), `ApplyExtendedWindowStyle(WS_EX_TOOLWINDOW)`, `SetWindowPos` with `SWP_NOZORDER \| SWP_NOACTIVATE` |
+| `src/UniversalPanel/Shell/PanelWindow.xaml.cs` (show/hide) | EarTrumpet `EarTrumpet/UI/Views/FlyoutWindow.xaml.cs` | Pre-warm with `Show(); Hide();` + `WS_EX_TOOLWINDOW`; position from monitor working area in physical pixels; cloak while hidden |
+| `src/UniversalPanel/Shell/PanelAnimator.cs` | EarTrumpet `EarTrumpet/UI/Helpers/WindowAnimationLibrary.cs` | Entrance/exit storyboard on `Window.Left` + opacity, `QuinticEase` ease-out, `FillBehavior.Stop` then commit final value; activate + `SetForegroundWindow` on completion |
+| `src/UniversalPanel/Shell/PanelWindow.xaml` | WPF-UI `src/Wpf.Ui/Controls/FluentWindow/FluentWindow.cs`, `Controls/Window/WindowBackdrop.cs` | `FluentWindow` + `ExtendsContentIntoTitleBar` + `WindowBackdropType` (backdrop requires extended content) |
 
 ### Error handling
 
@@ -49,6 +52,16 @@ Reference snapshots (shallow clones, read 2026-10-29):
 
 Our own additions (no upstream equivalent, kept small on purpose): de-duplication of repeated
 errors, the UI-exception circuit breaker, `Guard` boundaries, and the bounded background logger.
+
+Deliberate deviations from upstream:
+
+- Animations: EarTrumpet fades `Window.Opacity`, which only works with `AllowsTransparency`. We fade
+  the window's content instead.
+
+Deviation from EarTrumpet's backdrop: EarTrumpet uses `AllowsTransparency="True"` plus the
+undocumented `SetWindowCompositionAttribute` accent policy for acrylic. We use WPF-UI's
+documented `DWMWA_SYSTEMBACKDROP_TYPE` path instead, which avoids the layered-window rendering cost
+(see [PITFALLS.md](PITFALLS.md)).
 
 ## Planned references per module
 

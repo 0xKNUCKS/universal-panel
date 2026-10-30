@@ -1,10 +1,14 @@
 using System.Windows;
 using UniversalPanel.Diagnostics;
+using UniversalPanel.Modules;
+using UniversalPanel.Shell;
 
 namespace UniversalPanel;
 
 public partial class App : Application
 {
+    private PanelWindow? _panel;
+
     [STAThread]
     public static void Main()
     {
@@ -29,5 +33,14 @@ public partial class App : Application
             Log.Info("App", "Exited.");
             Log.Flush();
         }
+    }
+
+    protected override void OnStartup(StartupEventArgs e)
+    {
+        base.OnStartup(e);
+
+        _panel = new PanelWindow(PlaceholderModule.Defaults);
+        _panel.Initialize();
+        _panel.ShowPanel();
     }
 }
