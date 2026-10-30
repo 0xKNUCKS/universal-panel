@@ -1,5 +1,6 @@
 // Mirrors System Informer (MIT, Copyright (c) 2022 Winsider Seminars & Solutions, Inc.):
-//   phnt/include/ntexapi.h  SYSTEM_PROCESS_INFORMATION (field layout)
+//   phnt/include/ntexapi.h  SYSTEM_PROCESS_INFORMATION, SYSTEM_THREAD_INFORMATION (field layout)
+//   phnt/include/ntkeapi.h  KTHREAD_STATE, KWAIT_REASON
 //   phlib/native.c          PhEnumProcessesEx (grow on STATUS_INFO_LENGTH_MISMATCH /
 //                           STATUS_BUFFER_TOO_SMALL, keep the size for the next call)
 // https://github.com/winsiderss/systeminformer @ c2f1489890f14de76b985c0142cbad154d92623d
@@ -26,6 +27,17 @@ internal sealed record ProcessRecord(
     int SessionId,
     int BasePriority);
 
+/// <summary>One thread, from the array that follows each process entry in the same snapshot.</summary>
+internal sealed record ThreadRecord(
+    int Tid,
+    long CreateTime,
+    long CpuTime100ns,
+    int Priority,
+    int BasePriority,
+    uint ContextSwitches,
+    int State,
+    int WaitReason);
+
 /// <summary>
 /// Reads every process in one <c>NtQuerySystemInformation(SystemProcessInformation)</c> call, no
 /// per-process handles needed. Not thread-safe: own one instance per sampling thread.
@@ -46,9 +58,17 @@ internal sealed unsafe partial class ProcessSnapshotReader : IDisposable
     {
         // Layout check against phnt: 0x100 bytes on x64 before the trailing thread array.
         Debug.Assert(sizeof(SYSTEM_PROCESS_INFORMATION) == 0x100, "SYSTEM_PROCESS_INFORMATION layout mismatch");
+        Debug.Assert(sizeof(SYSTEM_THREAD_INFORMATION) == 0x50, "SYSTEM_THREAD_INFORMATION layout mismatch");
     }
 
-    public List<ProcessRecord> Capture()
+    public List<ProcessRecord> Capture() => Capture(null, out _);
+
+    /// <summary>
+    /// Same single call; additionally returns the threads of <paramref name="threadsOf"/> (null if
+    /// that process instance is no longer in the snapshot). Threads are only parsed for that one
+    /// process, so asking costs nothing for the others.
+    /// </summary>
+    public List<ProcessRecord> Capture(ProcessKey? threadsOf, out List<ThreadRecord>? threads)
     {
         ObjectDisposedException.ThrowIf(_bufferSize == 0, this);
 
@@ -77,13 +97,14 @@ internal sealed unsafe partial class ProcessSnapshotReader : IDisposable
             break;
         }
 
-        return Parse((byte*)_buffer, Math.Min(returned, _bufferSize));
+        return Parse((byte*)_buffer, Math.Min(returned, _bufferSize), threadsOf, out threads);
     }
 
-    private static List<ProcessRecord> Parse(byte* buffer, uint length)
+    private static List<ProcessRecord> Parse(byte* buffer, uint length, ProcessKey? threadsOf, out List<ThreadRecord>? threads)
     {
         var records = new List<ProcessRecord>(512);
         uint offset = 0;
+        threads = null;
 
         while (offset + (uint)sizeof(SYSTEM_PROCESS_INFORMATION) <= length)
         {
@@ -102,6 +123,11 @@ internal sealed unsafe partial class ProcessSnapshotReader : IDisposable
                 (int)spi->SessionId,
                 spi->BasePriority));
 
+            if (threadsOf is { } wanted && wanted.Pid == pid && wanted.CreateTime == spi->CreateTime)
+            {
+                threads = ReadThreads(spi, buffer, length, offset);
+            }
+
             if (spi->NextEntryOffset == 0)
             {
                 break;
@@ -111,6 +137,30 @@ internal sealed unsafe partial class ProcessSnapshotReader : IDisposable
         }
 
         return records;
+    }
+
+    private static List<ThreadRecord> ReadThreads(SYSTEM_PROCESS_INFORMATION* spi, byte* buffer, uint length, uint offset)
+    {
+        var threads = new List<ThreadRecord>((int)Math.Min(spi->NumberOfThreads, 4096u));
+        // The thread array starts right after the fixed-size process entry.
+        uint at = offset + (uint)sizeof(SYSTEM_PROCESS_INFORMATION);
+
+        for (uint i = 0; i < spi->NumberOfThreads && at + (uint)sizeof(SYSTEM_THREAD_INFORMATION) <= length; i++)
+        {
+            var sti = (SYSTEM_THREAD_INFORMATION*)(buffer + at);
+            threads.Add(new ThreadRecord(
+                (int)sti->UniqueThread,
+                sti->CreateTime,
+                sti->KernelTime + sti->UserTime,
+                sti->Priority,
+                sti->BasePriority,
+                sti->ContextSwitches,
+                sti->ThreadState,
+                sti->WaitReason));
+            at += (uint)sizeof(SYSTEM_THREAD_INFORMATION);
+        }
+
+        return threads;
     }
 
     private static string ReadName(SYSTEM_PROCESS_INFORMATION* spi, byte* buffer, uint length, int pid)
@@ -157,6 +207,23 @@ internal sealed unsafe partial class ProcessSnapshotReader : IDisposable
         public ushort Length;
         public ushort MaximumLength;
         public nint Buffer;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct SYSTEM_THREAD_INFORMATION
+    {
+        public long KernelTime;
+        public long UserTime;
+        public long CreateTime;
+        public uint WaitTime;
+        public nint StartAddress;
+        public nint UniqueProcess; // CLIENT_ID
+        public nint UniqueThread;
+        public int Priority;
+        public int BasePriority;
+        public uint ContextSwitches;
+        public int ThreadState;
+        public int WaitReason;
     }
 
     [StructLayout(LayoutKind.Sequential)]
