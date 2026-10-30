@@ -11,7 +11,7 @@ The shell works: tray icon, hotkey, slide-in panel, module rail, error handling 
 
 | Module | State |
 |---|---|
-| Processes | Live list (CPU, memory, filter, sort, details tooltip); end, suspend, resume, priority, open file location, copy path. Critical processes get an explicit warning. Modules / handles / threads views not built yet. |
+| Processes | Done. Live list (CPU, memory, filter, sort); end, suspend, resume, priority, open file location, copy path. Details page per process: live threads (suspend, resume, end; start address as module+offset), loaded modules, and handles (friendly names, hide unnamed, close handle). Critical processes get an explicit warning. |
 | Tools, Python, Network | Placeholders |
 
 The process list samples once per second only while it's on screen (about 2.5% of one core while open, 0 while hidden).
@@ -24,6 +24,7 @@ Without elevation, actions on other users' and protected processes fail with "ac
 | Toggle panel | Alt + backtick (`` ` ``), or left-click the tray icon |
 | Hide | `Esc`, click outside, or the `>` button |
 | Process actions | Right-click a process; `Del` ends the selected one (after confirming) |
+| Process details | Double-click or `Enter` on a process; `Backspace` or the back button returns. Right-click threads and handles for their actions |
 | Logs / exit | Right-click the tray icon |
 
 Logs: `%LOCALAPPDATA%\UniversalPanel\logs`.
