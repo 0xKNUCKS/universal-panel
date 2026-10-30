@@ -100,10 +100,11 @@ internal static unsafe partial class HandleSnapshot
             foreach (var entry in entries)
             {
                 var type = types.TryGetValue((int)entry.ObjectTypeIndex, out var t) ? t : $"Type {entry.ObjectTypeIndex}";
+                var name = names.Resolve(entry.HandleValue, type, out bool isPipe);
                 records.Add(new HandleRecord(
                     (ulong)entry.HandleValue,
-                    type,
-                    names.Resolve(entry.HandleValue, type),
+                    isPipe ? "File (pipe)" : type,
+                    name,
                     entry.GrantedAccess,
                     entry.HandleAttributes));
             }
@@ -292,12 +293,24 @@ internal static unsafe partial class HandleSnapshot
 
     private static nint Raw(HANDLE handle) => (nint)handle.Value;
 
+    private const int FileFsDeviceInformation = 4;
+    private const uint FILE_DEVICE_NAMED_PIPE = 0x11;
+
+    private static bool IsNamedPipe(HANDLE file)
+    {
+        uint* device = stackalloc uint[2]; // FILE_FS_DEVICE_INFORMATION { DeviceType, Characteristics }
+        long* ioStatus = stackalloc long[2];
+        return NtQueryVolumeInformationFile(Raw(file), ioStatus, device, 2 * sizeof(uint), FileFsDeviceInformation) >= 0
+            && device[0] == FILE_DEVICE_NAMED_PIPE;
+    }
+
     /// <summary>Resolves handle names for one capture pass.</summary>
     private sealed class NameResolver(ProcessKey key, HANDLE process, bool canDuplicate, IReadOnlyDictionary<int, string> processNames, PathTranslator paths)
     {
 
-        public string Resolve(nint handleValue, string type)
+        public string Resolve(nint handleValue, string type, out bool isPipe)
         {
+            isPipe = false;
             if (!canDuplicate)
             {
                 return string.Empty;
@@ -307,7 +320,7 @@ internal static unsafe partial class HandleSnapshot
             {
                 "Process" => DescribeProcess(handleValue),
                 "Thread" => DescribeThread(handleValue),
-                "File" => QueryFileName(handleValue),
+                "File" => QueryFileName(handleValue, out isPipe),
                 _ => Translate(type, QueryOther(handleValue)),
             };
         }
@@ -381,23 +394,31 @@ internal static unsafe partial class HandleSnapshot
             }
         }
 
-        private string QueryFileName(nint handleValue)
+        private string QueryFileName(nint handleValue, out bool isPipe)
         {
-            // Captures are serialized (CaptureLock), so HungHandles needs no lock of its own.
-            if (HungHandles.Contains((key, handleValue)))
-            {
-                return "(name query hung earlier)";
-            }
-
-            if (TimedWorker.IsExhausted)
-            {
-                return "(name skipped: too many hung queries)";
-            }
-
+            isPipe = false;
             var dup = Duplicate(handleValue, 0);
             if (dup.IsNull)
             {
                 return string.Empty;
+            }
+
+            // Named pipes are what hang the name query (a synchronous pipe with a blocked reader;
+            // Chromium/Electron apps hold dozens). The device-type query doesn't take the file lock,
+            // so it answers instantly even then (measured: 1 ms on a stuck pipe, while the name and
+            // FileModeInformation queries both hung). Pipes are labeled, not named.
+            if (IsNamedPipe(dup))
+            {
+                PInvoke.CloseHandle(dup);
+                isPipe = true;
+                return string.Empty;
+            }
+
+            // Captures are serialized (CaptureLock), so HungHandles needs no lock of its own.
+            if (HungHandles.Contains((key, handleValue)) || TimedWorker.IsExhausted)
+            {
+                PInvoke.CloseHandle(dup);
+                return HungHandles.Contains((key, handleValue)) ? "(name query hung earlier)" : "(name skipped: too many hung queries)";
             }
 
             // The worker owns the duplicate from here on and closes it when the query returns,
@@ -627,6 +648,9 @@ internal static unsafe partial class HandleSnapshot
     // Signatures per phnt (ntpsapi.h, ntobapi.h).
     [LibraryImport("ntdll.dll")]
     private static partial int NtQueryInformationProcess(nint processHandle, int processInformationClass, void* processInformation, uint processInformationLength, out uint returnLength);
+
+    [LibraryImport("ntdll.dll")]
+    private static partial int NtQueryVolumeInformationFile(nint fileHandle, long* ioStatusBlock, void* fsInformation, uint length, int fsInformationClass);
 
     [LibraryImport("ntdll.dll")]
     private static partial int NtQueryObject(nint handle, int objectInformationClass, void* objectInformation, uint objectInformationLength, out uint returnLength);
