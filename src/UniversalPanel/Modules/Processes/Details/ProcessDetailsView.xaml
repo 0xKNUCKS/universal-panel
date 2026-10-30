@@ -10,6 +10,7 @@
     <!--  Same fixes as the process grid: WPF-UI's keyed row style, and no per-cell Copy/Cut/Paste menu.  -->
     <Style x:Key="CellText" BasedOn="{StaticResource DefaultDataGridTextElementStyle}" TargetType="TextBlock">
       <Setter Property="ContextMenu" Value="{x:Null}" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     </Style>
     <Style x:Key="DetailRow" BasedOn="{StaticResource DefaultDataGridRowStyle}" TargetType="DataGridRow">
       <Setter Property="ToolTip" Value="" />

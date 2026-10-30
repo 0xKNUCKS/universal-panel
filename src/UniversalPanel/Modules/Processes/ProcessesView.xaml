@@ -69,6 +69,7 @@
           <!--  WPF-UI gives every cell TextBlock a Copy/Cut/Paste menu, which would shadow the row menu.  -->
           <Style BasedOn="{StaticResource DefaultDataGridTextElementStyle}" TargetType="TextBlock">
             <Setter Property="ContextMenu" Value="{x:Null}" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
           </Style>
         </ui:DataGrid.TextColumnElementStyle>
         <ui:DataGrid.ContextMenu>
@@ -128,8 +129,15 @@
           <DataGridTemplateColumn Width="*" Header="Name" SortMemberPath="Name">
             <DataGridTemplateColumn.CellTemplate>
               <DataTemplate>
-                <StackPanel Margin="{Binding Indent}" VerticalAlignment="Center" Orientation="Horizontal">
+                <!--  Grid, not a horizontal StackPanel: a StackPanel gives the text unlimited width,
+                      so it could never be trimmed with an ellipsis.  -->
+                <Grid Margin="{Binding Indent}" VerticalAlignment="Center">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
                   <ui:Button
+                    Grid.Column="0"
                     Width="18"
                     Height="18"
                     Margin="0,0,2,0"
@@ -142,8 +150,13 @@
                   >
                     <ui:SymbolIcon FontSize="11" Symbol="{Binding ExpanderSymbol}" />
                   </ui:Button>
-                  <TextBlock VerticalAlignment="Center" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                </StackPanel>
+                  <TextBlock
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Text="{Binding Name}"
+                    TextTrimming="CharacterEllipsis"
+                  />
+                </Grid>
               </DataTemplate>
             </DataGridTemplateColumn.CellTemplate>
           </DataGridTemplateColumn>
