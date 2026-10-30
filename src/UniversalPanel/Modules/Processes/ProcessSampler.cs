@@ -9,7 +9,7 @@ using UniversalPanel.Native;
 
 namespace UniversalPanel.Modules.Processes;
 
-internal sealed record ProcessSample(ProcessRecord Record, double CpuPercent, string? ImagePath);
+internal sealed record ProcessSample(ProcessRecord Record, double CpuPercent, string? ImagePath, System.Windows.Media.ImageSource? Icon);
 
 internal sealed record ThreadSample(ThreadRecord Record, double CpuPercent, ulong? StartAddress);
 
@@ -31,7 +31,7 @@ internal sealed class ProcessSampler : IDisposable
 
     private readonly ProcessSnapshotReader _reader = new();
     private readonly Dictionary<ProcessKey, long> _lastCpuTime = [];
-    private readonly Dictionary<ProcessKey, string?> _paths = [];
+    private readonly Dictionary<ProcessKey, (string? Path, System.Windows.Media.ImageSource? Icon)> _images = [];
     private readonly Dictionary<ThreadKey, long> _lastThreadCpu = [];
     private readonly Dictionary<ThreadKey, ulong?> _startAddresses = [];
     private ProcessKey? _threadsOf;
@@ -133,16 +133,19 @@ internal sealed class ProcessSampler : IDisposable
             _lastCpuTime[record.Key] = record.CpuTime100ns;
 
             // Path never changes for a process instance: query once, cache by PID + create time.
-            if (!_paths.TryGetValue(record.Key, out var path))
+            // Path and icon never change for a process instance: resolve once, cache by PID +
+            // create time. Icons are also cached per path, so 13 claude.exe extract one icon.
+            if (!_images.TryGetValue(record.Key, out var image))
             {
-                _paths[record.Key] = path = ProcessImage.TryGetPath(record.Key.Pid);
+                var path = ProcessImage.TryGetPath(record.Key.Pid);
+                _images[record.Key] = image = (path, ProcessIcons.Get(path));
             }
 
-            samples.Add(new ProcessSample(record, cpu, path));
+            samples.Add(new ProcessSample(record, cpu, image.Path, image.Icon));
         }
 
         Prune(_lastCpuTime, seen);
-        Prune(_paths, seen);
+        Prune(_images, seen);
 
         var threads = SampleThreads(focus, threadRecords, totalDelta);
 

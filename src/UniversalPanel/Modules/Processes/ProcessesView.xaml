@@ -134,6 +134,7 @@
                 <Grid Margin="{Binding Indent}" VerticalAlignment="Center">
                   <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                   </Grid.ColumnDefinitions>
                   <ui:Button
@@ -150,8 +151,17 @@
                   >
                     <ui:SymbolIcon FontSize="11" Symbol="{Binding ExpanderSymbol}" />
                   </ui:Button>
-                  <TextBlock
+                  <Image
                     Grid.Column="1"
+                    Width="16"
+                    Height="16"
+                    Margin="0,0,6,0"
+                    VerticalAlignment="Center"
+                    RenderOptions.BitmapScalingMode="HighQuality"
+                    Source="{Binding Icon}"
+                  />
+                  <TextBlock
+                    Grid.Column="2"
                     VerticalAlignment="Center"
                     Text="{Binding Name}"
                     TextTrimming="CharacterEllipsis"

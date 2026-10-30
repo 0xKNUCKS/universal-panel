@@ -20,6 +20,7 @@ internal sealed class ProcessRow(ProcessSample sample) : INotifyPropertyChanged
     public int Pid => Key.Pid;
     public string Name => _sample.Record.Name;
     public string? ImagePath => _sample.ImagePath;
+    public System.Windows.Media.ImageSource? Icon => _sample.Icon;
     public int BasePriority => _sample.Record.BasePriority;
 
     public double Cpu => _cpu;
