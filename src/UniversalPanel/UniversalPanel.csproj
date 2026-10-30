@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -13,7 +13,7 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>false</SelfContained>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <!-- Custom Main in App.xaml.cs; App.xaml is a Page, not the ApplicationDefinition. -->
+    <!-- Custom Main in App.xaml.cs gates startup on the single-instance check. -->
     <!-- Same setup as Flow.Launcher/Flow.Launcher.csproj. -->
     <StartupObject>UniversalPanel.App</StartupObject>
   </PropertyGroup>

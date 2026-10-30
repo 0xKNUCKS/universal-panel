@@ -39,6 +39,8 @@ Reference snapshots (shallow clones, read 2026-10-29):
 
 | Our file | Mirrors | What was taken |
 |---|---|---|
+| `src/UniversalPanel/Shell/SingleInstance.cs` | Flow Launcher `Flow.Launcher/Helper/SingleInstance.cs` | Per-user named mutex + named pipe that tells the first instance to show itself |
+| `src/UniversalPanel/App.xaml.cs` (`Main`) | Flow Launcher `Flow.Launcher/App.xaml.cs` `Main()` | Custom `[STAThread] Main` that gates `App.Run()` on the single-instance check |
 | `src/UniversalPanel/Shell/HotkeyService.cs` | Flow Launcher `Flow.Launcher/Helper/HotKeyMapper.cs` | `HotkeyManager.Current.AddOrReplace(...)`, catching `HotkeyAlreadyRegisteredException` and surfacing it |
 | `src/UniversalPanel/Native/WindowExtensions.cs` | EarTrumpet `EarTrumpet/Extensions/WindowExtensions.cs` | `Cloak` (`DWMWA_CLOAK`), `ApplyExtendedWindowStyle(WS_EX_TOOLWINDOW)`, `SetWindowPos` with `SWP_NOZORDER \| SWP_NOACTIVATE` |
 | `src/UniversalPanel/Shell/PanelWindow.xaml.cs` (show/hide) | EarTrumpet `EarTrumpet/UI/Views/FlyoutWindow.xaml.cs` | Pre-warm with `Show(); Hide();` + `WS_EX_TOOLWINDOW`; position from monitor working area in physical pixels; cloak while hidden |
@@ -58,6 +60,8 @@ errors, the UI-exception circuit breaker, `Guard` boundaries, and the bounded ba
 
 Deliberate deviations from upstream:
 
+- `SingleInstance`: upstream fires the client connect as an un-awaited task and returns from
+  `Main`, which can exit before the signal is sent; we connect synchronously with a 1 s timeout.
 - Animations: EarTrumpet fades `Window.Opacity`, which only works with `AllowsTransparency`. We fade
   the window's content instead.
 

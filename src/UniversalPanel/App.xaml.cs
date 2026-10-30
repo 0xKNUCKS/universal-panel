@@ -15,19 +15,28 @@ using MessageBoxButton = System.Windows.MessageBoxButton;
 
 namespace UniversalPanel;
 
-public partial class App : Application
+public partial class App : Application, ISingleInstanceApp
 {
     private PanelWindow? _panel;
     private TaskbarIcon? _tray;
 
+    // Startup flow mirrors Flow Launcher's App.Main (MIT): gate on single instance, then Run().
     [STAThread]
     public static void Main()
     {
         Log.Start();
         Log.Info("App", $"Starting {typeof(App).Assembly.GetName().Version} on {Environment.OSVersion}, x64={Environment.Is64BitProcess}");
 
+        bool firstInstance = false;
         try
         {
+            firstInstance = SingleInstance.InitializeAsFirstInstance();
+            if (!firstInstance)
+            {
+                Log.Info("App", "Another instance is running; asked it to show.");
+                return;
+            }
+
             var app = new App();
             ErrorReporter.InstallGlobalHandlers(app);
             app.InitializeComponent();
@@ -41,6 +50,11 @@ public partial class App : Application
         }
         finally
         {
+            if (firstInstance)
+            {
+                SingleInstance.Cleanup();
+            }
+
             Log.Info("App", "Exited.");
             Log.Flush();
         }
@@ -69,6 +83,8 @@ public partial class App : Application
         _tray?.Dispose();
         base.OnExit(e);
     }
+
+    public void OnSecondAppStarted() => Guard.Run("SingleInstance.Show", () => _panel?.ShowPanel());
 
     private TaskbarIcon CreateTrayIcon()
     {
