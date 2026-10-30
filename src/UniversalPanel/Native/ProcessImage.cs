@@ -75,6 +75,16 @@ internal static class ProcessImage
         return (ToUInt64(kernel) + ToUInt64(user), ToUInt64(idle));
     }
 
+    /// <summary>Physical memory (total, available) in bytes, or (0, 0) if the call fails.</summary>
+    public static (ulong Total, ulong Available) GetMemoryStatus()
+    {
+        var status = new Windows.Win32.System.SystemInformation.MEMORYSTATUSEX
+        {
+            dwLength = (uint)System.Runtime.InteropServices.Marshal.SizeOf<Windows.Win32.System.SystemInformation.MEMORYSTATUSEX>(),
+        };
+        return PInvoke.GlobalMemoryStatusEx(ref status) ? (status.ullTotalPhys, status.ullAvailPhys) : (0, 0);
+    }
+
     private static ulong ToUInt64(System.Runtime.InteropServices.ComTypes.FILETIME ft) =>
         ((ulong)(uint)ft.dwHighDateTime << 32) | (uint)ft.dwLowDateTime;
 }

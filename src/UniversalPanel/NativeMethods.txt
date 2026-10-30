@@ -40,3 +40,4 @@ GetSystemMetricsForDpi
 SHDefExtractIcon
 SHGetStockIconInfo
 GetSystemMetrics
+GlobalMemoryStatusEx

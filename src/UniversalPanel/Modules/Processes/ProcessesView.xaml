@@ -203,6 +203,7 @@
 
       <ui:TextBlock
         x:Name="Summary"
+        TextTrimming="CharacterEllipsis"
         Grid.Row="2"
         Margin="2,8,0,0"
         Appearance="Secondary"

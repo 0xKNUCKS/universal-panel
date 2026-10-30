@@ -83,12 +83,35 @@ internal sealed partial class ProcessesView : UserControl
 
         UpdateTree(alive);
         LoadingRing.Set(ListSpinner, false);
-        Summary.Text = $"{frame.Processes.Count} processes · CPU {frame.SystemCpuPercent:0}%";
+        Summary.Text = DescribeSystem(frame);
 
         if (DetailsOpen)
         {
             _details?.Apply(frame);
         }
+    }
+
+    private static string DescribeSystem(ProcessFrame frame)
+    {
+        long threads = 0, handles = 0;
+        foreach (var process in frame.Processes)
+        {
+            threads += process.Record.Threads;
+            handles += process.Record.Handles;
+        }
+
+        var culture = System.Globalization.CultureInfo.CurrentCulture;
+        var text = string.Create(culture,
+            $"CPU {frame.SystemCpuPercent:0.00}% · {frame.Processes.Count:N0} processes · {threads:N0} threads · {handles:N0} handles");
+
+        if (frame.MemoryTotal > 0)
+        {
+            ulong used = frame.MemoryTotal - frame.MemoryAvailable;
+            text += string.Create(culture,
+                $"\nMemory {100.0 * used / frame.MemoryTotal:0.00}% · {ProcessRow.FormatBytes(used)} of {ProcessRow.FormatBytes(frame.MemoryTotal)}");
+        }
+
+        return text;
     }
 
     private bool MatchesFilter(object item)

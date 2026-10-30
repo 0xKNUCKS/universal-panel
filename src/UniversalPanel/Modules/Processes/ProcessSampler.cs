@@ -19,7 +19,9 @@ internal sealed record ProcessFrame(
     IReadOnlyList<ProcessSample> Processes,
     double SystemCpuPercent,
     ProcessKey? Focus,
-    IReadOnlyList<ThreadSample>? FocusedThreads);
+    IReadOnlyList<ThreadSample>? FocusedThreads,
+    ulong MemoryTotal,
+    ulong MemoryAvailable);
 
 /// <summary>
 /// Samples all processes on a background thread while started. Stopped = no timers, no work.
@@ -152,7 +154,8 @@ internal sealed class ProcessSampler : IDisposable
         if (publish)
         {
             double systemCpu = totalDelta > 0 ? 100.0 * (1 - (double)idleDelta / totalDelta) : 0;
-            Sampled?.Invoke(new ProcessFrame(samples, Math.Clamp(systemCpu, 0, 100), focus, threads));
+            var (memoryTotal, memoryAvailable) = ProcessImage.GetMemoryStatus();
+            Sampled?.Invoke(new ProcessFrame(samples, Math.Clamp(systemCpu, 0, 100), focus, threads, memoryTotal, memoryAvailable));
         }
     }
 
