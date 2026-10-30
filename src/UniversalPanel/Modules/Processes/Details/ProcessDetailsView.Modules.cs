@@ -27,6 +27,7 @@ internal sealed partial class ProcessDetailsView
         int version = ++_modulesLoadVersion;
         string name = TargetName;
         ModulesSummary.Text = "Loading…";
+        await LoadingRing.ShowAsync(ModulesSpinner);
 
         List<ModuleRecord> records;
         try
@@ -40,12 +41,13 @@ internal sealed partial class ProcessDetailsView
                 _modules.Clear();
                 _moduleRecords = [];
                 ModulesSummary.Text = ex.Message;
+                LoadingRing.Set(ModulesSpinner, false);
             }
 
             return;
         }
 
-        // A newer load (or another process) started while this one ran.
+        // A newer load (which owns the spinner now) or another process took over meanwhile.
         if (version != _modulesLoadVersion || Target != target)
         {
             return;
@@ -58,6 +60,7 @@ internal sealed partial class ProcessDetailsView
             _modules.Add(new ModuleRow(record));
         }
 
+        LoadingRing.Set(ModulesSpinner, false);
         ModulesSummary.Text = $"{records.Count} modules";
 
         // Start addresses can now be shown as module+offset.

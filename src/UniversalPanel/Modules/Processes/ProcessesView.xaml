@@ -191,6 +191,16 @@
         </ui:DataGrid.Columns>
       </ui:DataGrid>
 
+      <!--  Holds a ProgressRing until the first sample fills the list (see LoadingRing).  -->
+      <ContentControl
+        x:Name="ListSpinner"
+        Grid.Row="1"
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center"
+        Focusable="False"
+        IsHitTestVisible="False"
+      />
+
       <ui:TextBlock
         x:Name="Summary"
         Grid.Row="2"

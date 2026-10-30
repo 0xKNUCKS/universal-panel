@@ -52,6 +52,7 @@ internal sealed partial class ProcessDetailsView : UserControl
         _threadsByKey.Clear();
         _sortedOnce = false;
         ThreadsSummary.Text = "Loading…";
+        LoadingRing.Set(ThreadsSpinner, true); // Until the next sampler tick brings this process's threads.
         Tabs.SelectedIndex = 0;
 
         _modules.Clear();
@@ -74,6 +75,7 @@ internal sealed partial class ProcessDetailsView : UserControl
             return;
         }
 
+        LoadingRing.Set(ThreadsSpinner, false);
         if (frame.FocusedThreads is not { } threads)
         {
             ThreadsSummary.Text = $"{TargetName} has exited.";

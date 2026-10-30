@@ -31,6 +31,7 @@ internal sealed partial class ProcessesView : UserControl
 
         Grid.ItemsSource = _view;
         BuildPriorityMenu();
+        LoadingRing.Set(ListSpinner, true); // Until the first sample arrives.
 
         _filterDebounce = new DispatcherTimer(TimeSpan.FromMilliseconds(150), DispatcherPriority.Input, (_, _) =>
         {
@@ -81,6 +82,7 @@ internal sealed partial class ProcessesView : UserControl
         }
 
         UpdateTree(alive);
+        LoadingRing.Set(ListSpinner, false);
         Summary.Text = $"{frame.Processes.Count} processes · CPU {frame.SystemCpuPercent:0}%";
 
         if (DetailsOpen)
