@@ -75,6 +75,11 @@
               <ui:SymbolIcon Symbol="FolderOpen24" />
             </MenuItem.Icon>
           </MenuItem>
+          <MenuItem x:Name="CopyPathItem" Click="OnCopyPath" Header="Copy path">
+            <MenuItem.Icon>
+              <ui:SymbolIcon Symbol="Copy24" />
+            </MenuItem.Icon>
+          </MenuItem>
           <!--  Items are added in ProcessesView.Priority.cs  -->
           <MenuItem x:Name="PriorityMenu" Header="Priority">
             <MenuItem.Icon>

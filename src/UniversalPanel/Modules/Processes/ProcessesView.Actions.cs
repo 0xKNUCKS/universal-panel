@@ -32,6 +32,25 @@ internal sealed partial class ProcessesView
 
         UpdatePriorityMenu(row);
         OpenLocationItem.IsEnabled = row.ImagePath is not null;
+        CopyPathItem.IsEnabled = row.ImagePath is not null;
+    }
+
+    private void OnCopyPath(object sender, RoutedEventArgs e)
+    {
+        if (Selected is not { ImagePath: { } path })
+        {
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetDataObject(path, copy: true);
+        }
+        catch (System.Runtime.InteropServices.ExternalException)
+        {
+            // CLIPBRD_E_CANT_OPEN: another app holds the clipboard open. Expected, not a bug.
+            Host.ShowNotice("Clipboard busy", "Another app is using the clipboard. Try again.", InfoBarSeverity.Warning);
+        }
     }
 
     private void OnOpenLocation(object sender, RoutedEventArgs e)
