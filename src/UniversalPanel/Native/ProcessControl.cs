@@ -68,6 +68,29 @@ internal static partial class ProcessControl
     }
 
     /// <summary>
+    /// True if the PID still belongs to this process instance. When it can't be opened at all
+    /// (protected, other user), gives the benefit of the doubt: callers then fail on their own
+    /// access check instead.
+    /// </summary>
+    public static bool IsSameInstance(ProcessKey key)
+    {
+        var handle = PInvoke.OpenProcess(PROCESS_ACCESS_RIGHTS.PROCESS_QUERY_LIMITED_INFORMATION, false, (uint)key.Pid);
+        if (handle.IsNull)
+        {
+            return Marshal.GetLastPInvokeError() != ERROR_INVALID_PARAMETER;
+        }
+
+        try
+        {
+            return HasCreateTime(handle, key);
+        }
+        finally
+        {
+            PInvoke.CloseHandle(handle);
+        }
+    }
+
+    /// <summary>
     /// True if the kernel will bugcheck when this process exits (ProcessBreakOnTermination), false
     /// if not, null if it can't be queried (e.g. access denied when not elevated).
     /// </summary>

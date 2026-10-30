@@ -26,3 +26,6 @@ GetProcessIdOfThread
 ResumeThread
 SuspendThread
 TerminateThread
+CreateToolhelp32Snapshot
+Module32FirstW
+Module32NextW
