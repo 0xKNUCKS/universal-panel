@@ -2,6 +2,7 @@
 // https://github.com/Flow-Launcher/Flow.Launcher @ 440f38bd2addc49c1507ef32536edb9511477f82
 // Copyright (c) 2019 Flow-Launcher. Changes: non-generic, renamed identifiers, nullable annotations.
 
+using System.IO;
 using System.IO.Pipes;
 using System.Windows;
 
@@ -17,14 +18,16 @@ public interface ISingleInstanceApp
 /// pipe (so it can show the panel) and then exits.
 /// </summary>
 /// <remarks>
-/// No security checking (same caveat as upstream): an unelevated second instance can signal an
-/// elevated first instance. The signal carries no data; it only asks the panel to show.
+/// Hardened vs. upstream: the pipe is created with <see cref="PipeOptions.CurrentUserOnly"/>, so
+/// only processes running as the same user can connect, and the mutex lives in the per-session
+/// <c>Local\</c> namespace. The signal carries no data and the server never reads from the pipe;
+/// connecting only asks the panel to show.
 /// </remarks>
 public static class SingleInstance
 {
     private const string Delimiter = ":";
     private const string ChannelNameSuffix = "SingleInstanceIPCChannel";
-    private const string InstanceMutexName = "UniversalPanel_Unique_Application_Mutex";
+    private const string InstanceMutexName = @"Local\UniversalPanel_Unique_Application_Mutex";
 
     internal static Mutex? SingleInstanceMutex { get; set; }
 
@@ -32,7 +35,8 @@ public static class SingleInstance
     public static bool InitializeAsFirstInstance()
     {
         string applicationIdentifier = InstanceMutexName + Environment.UserName;
-        string channelName = string.Concat(applicationIdentifier, Delimiter, ChannelNameSuffix);
+        // Pipe names can't contain the "Local\" prefix's backslash.
+        string channelName = string.Concat(applicationIdentifier.Replace('\\', '_'), Delimiter, ChannelNameSuffix);
 
         SingleInstanceMutex = new Mutex(true, applicationIdentifier, out var firstInstance);
         if (firstInstance)
@@ -52,7 +56,12 @@ public static class SingleInstance
 
     private static async Task CreateRemoteServiceAsync(string channelName)
     {
-        using var pipeServer = new NamedPipeServerStream(channelName, PipeDirection.In);
+        using var pipeServer = new NamedPipeServerStream(
+            channelName,
+            PipeDirection.In,
+            maxNumberOfServerInstances: 1,
+            PipeTransmissionMode.Byte,
+            PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
         while (true)
         {
             await pipeServer.WaitForConnectionAsync();
@@ -69,12 +78,14 @@ public static class SingleInstance
     {
         try
         {
-            using var pipeClient = new NamedPipeClientStream(".", channelName, PipeDirection.Out);
+            using var pipeClient = new NamedPipeClientStream(
+                ".", channelName, PipeDirection.Out, PipeOptions.CurrentUserOnly);
             pipeClient.Connect(1000);
         }
-        catch (TimeoutException)
+        catch (Exception ex) when (ex is TimeoutException or UnauthorizedAccessException or IOException)
         {
-            // First instance is still starting up or is shutting down; nothing to signal.
+            // First instance is starting/stopping, or its pipe is owned by another user (rejected
+            // by CurrentUserOnly). Either way there's nothing safe to signal.
         }
     }
 

@@ -62,6 +62,7 @@ Deliberate deviations from upstream:
 
 - `SingleInstance`: upstream fires the client connect as an un-awaited task and returns from
   `Main`, which can exit before the signal is sent; we connect synchronously with a 1 s timeout.
+  Added `CurrentUserOnly` pipe options (see [SECURITY.md](SECURITY.md)).
 - Animations: EarTrumpet fades `Window.Opacity`, which only works with `AllowsTransparency`. We fade
   the window's content instead.
 
