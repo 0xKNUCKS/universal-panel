@@ -32,6 +32,17 @@ Reference snapshots (shallow clones, read 2026-10-29):
 | [microsoft/PowerToys](https://github.com/microsoft/PowerToys) | MIT | `669a19ea9c50f6b42ecc8ee962e1323013c3656f` |
 | [HavenDV/H.NotifyIcon](https://github.com/HavenDV/H.NotifyIcon) | MIT | `d590d46aa18d480782c8aaf5bf4fee2b4c12accf` |
 
+### Error handling
+
+| Our file | Mirrors | What was taken |
+|---|---|---|
+| `src/UniversalPanel/Diagnostics/ErrorReporter.cs` (global handlers) | Flow Launcher `Flow.Launcher/Helper/ErrorReporting.cs` | Dispatcher handler marks handled; AppDomain handler logs (process dies); unobserved task exceptions logged + `SetObserved()` |
+| `src/UniversalPanel/Diagnostics/ErrorReporter.cs` (`IsRecoverableDwmCompositionException`) | PowerToys `src/modules/launcher/PowerLauncher/Helper/ExceptionHelper.cs`, as copied by Flow Launcher `Flow.Launcher/Helper/ExceptionHelper.cs` | Filter for harmless `WindowChrome` COM exceptions during DWM composition changes |
+| `src/UniversalPanel/App.xaml.cs` (startup catch) | Flow Launcher `App.ShowErrorMsgBoxAndFailFast` | Startup failures are logged and shown, never silent |
+
+Our own additions (no upstream equivalent, kept small on purpose): de-duplication of repeated
+errors, the UI-exception circuit breaker, `Guard` boundaries, and the bounded background logger.
+
 ## Planned references per module
 
 | Module | Primary reference | Secondary |
