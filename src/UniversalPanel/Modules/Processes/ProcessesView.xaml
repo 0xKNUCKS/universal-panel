@@ -69,6 +69,13 @@
               <ui:SymbolIcon Symbol="Play24" />
             </MenuItem.Icon>
           </MenuItem>
+          <Separator />
+          <!--  Items are added in ProcessesView.Priority.cs  -->
+          <MenuItem x:Name="PriorityMenu" Header="Priority">
+            <MenuItem.Icon>
+              <ui:SymbolIcon Symbol="TopSpeed24" />
+            </MenuItem.Icon>
+          </MenuItem>
         </ContextMenu>
       </ui:DataGrid.ContextMenu>
       <ui:DataGrid.RowStyle>

@@ -24,10 +24,13 @@ internal sealed partial class ProcessesView
 
     private void OnGridContextMenuOpening(object sender, ContextMenuEventArgs e)
     {
-        if (Selected is null)
+        if (Selected is not { } row)
         {
             e.Handled = true;
+            return;
         }
+
+        UpdatePriorityMenu(row);
     }
 
     private void OnGridKeyDown(object sender, KeyEventArgs e)

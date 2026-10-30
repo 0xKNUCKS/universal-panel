@@ -33,6 +33,7 @@ internal sealed partial class ProcessesView : UserControl
         }
 
         Grid.ItemsSource = _view;
+        BuildPriorityMenu();
 
         _filterDebounce = new DispatcherTimer(TimeSpan.FromMilliseconds(150), DispatcherPriority.Input, (_, _) =>
         {

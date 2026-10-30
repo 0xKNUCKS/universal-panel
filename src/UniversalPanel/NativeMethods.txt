@@ -16,3 +16,4 @@ OpenProcess
 QueryFullProcessImageName
 GetProcessTimes
 TerminateProcess
+SetPriorityClass

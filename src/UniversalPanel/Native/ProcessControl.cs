@@ -47,6 +47,27 @@ internal static partial class ProcessControl
         WithProcess(key, name, PROCESS_ACCESS_RIGHTS.PROCESS_SUSPEND_RESUME, h => CheckStatus(NtResumeProcess(Raw(h)), name, "resume"));
 
     /// <summary>
+    /// Mirrors System Informer's PhUiSetPriorityClassProcesses: PROCESS_SET_INFORMATION, and never
+    /// for System, since changing its priority can bugcheck some Windows versions.
+    /// Realtime silently becomes High unless the caller holds SeIncreaseBasePriorityPrivilege.
+    /// </summary>
+    public static void SetPriority(ProcessKey key, string name, PROCESS_CREATION_FLAGS priorityClass)
+    {
+        if (key.Pid is 0 or 4)
+        {
+            throw new ProcessActionException(ProcessActionFailure.Failed, $"Changing the priority of {name} isn't allowed; it can crash Windows.");
+        }
+
+        WithProcess(key, name, PROCESS_ACCESS_RIGHTS.PROCESS_SET_INFORMATION, h =>
+        {
+            if (!PInvoke.SetPriorityClass(h, priorityClass))
+            {
+                ThrowLastError(name, "change the priority of");
+            }
+        });
+    }
+
+    /// <summary>
     /// True if the kernel will bugcheck when this process exits (ProcessBreakOnTermination), false
     /// if not, null if it can't be queried (e.g. access denied when not elevated).
     /// </summary>
