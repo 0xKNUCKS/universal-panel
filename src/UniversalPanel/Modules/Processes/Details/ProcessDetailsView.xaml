@@ -67,11 +67,14 @@
             CanUserDeleteRows="False"
             CanUserReorderColumns="False"
             CanUserResizeRows="False"
+            ContextMenuOpening="OnThreadsContextMenuOpening"
             EnableRowVirtualization="True"
             FontSize="13"
             GridLinesVisibility="None"
             HeadersVisibility="Column"
             IsReadOnly="True"
+            PreviewKeyDown="OnThreadsKeyDown"
+            PreviewMouseRightButtonDown="OnThreadsRightButtonDown"
             RowHeight="28"
             RowStyle="{StaticResource DetailRow}"
             SelectionMode="Single"
@@ -79,6 +82,26 @@
             VirtualizingPanel.IsVirtualizing="True"
             VirtualizingPanel.VirtualizationMode="Recycling"
           >
+            <ui:DataGrid.ContextMenu>
+              <ContextMenu>
+                <MenuItem Click="OnSuspendThread" Header="Suspend">
+                  <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="Pause24" />
+                  </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Click="OnResumeThread" Header="Resume">
+                  <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="Play24" />
+                  </MenuItem.Icon>
+                </MenuItem>
+                <Separator />
+                <MenuItem Click="OnEndThread" Header="End thread" InputGestureText="Del">
+                  <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="DismissCircle24" />
+                  </MenuItem.Icon>
+                </MenuItem>
+              </ContextMenu>
+            </ui:DataGrid.ContextMenu>
             <ui:DataGrid.Columns>
               <DataGridTextColumn Width="66" Binding="{Binding Tid}" Header="TID" SortMemberPath="Tid" />
               <DataGridTextColumn Width="56" Binding="{Binding CpuText}" Header="CPU" SortMemberPath="Cpu" />

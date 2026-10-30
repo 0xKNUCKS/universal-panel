@@ -22,3 +22,7 @@ SHOpenFolderAndSelectItems
 SHParseDisplayName
 GetThreadTimes
 OpenThread
+GetProcessIdOfThread
+ResumeThread
+SuspendThread
+TerminateThread

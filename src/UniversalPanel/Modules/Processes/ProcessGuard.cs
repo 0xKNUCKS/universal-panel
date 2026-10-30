@@ -34,14 +34,16 @@ internal static class ProcessGuard
         "explorer.exe",
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
-    public static ProcessRisk Assess(ProcessRow row)
+    public static ProcessRisk Assess(ProcessRow row) => Assess(row.Key, row.Name);
+
+    public static ProcessRisk Assess(ProcessKey key, string name)
     {
-        if (row.Pid == Environment.ProcessId)
+        if (key.Pid == Environment.ProcessId)
         {
             return ProcessRisk.Self;
         }
 
-        if (row.Pid is 0 or 4 || DangerousNames.Contains(row.Name) || ProcessControl.IsCritical(row.Key) == true)
+        if (key.Pid is 0 or 4 || DangerousNames.Contains(name) || ProcessControl.IsCritical(key) == true)
         {
             return ProcessRisk.Critical;
         }
@@ -49,5 +51,7 @@ internal static class ProcessGuard
         return ProcessRisk.Normal;
     }
 
-    public static bool FreezesDesktop(ProcessRow row) => FreezesDesktopWhenSuspended.Contains(row.Name);
+    public static bool FreezesDesktop(ProcessRow row) => FreezesDesktop(row.Name);
+
+    public static bool FreezesDesktop(string name) => FreezesDesktopWhenSuspended.Contains(name);
 }
