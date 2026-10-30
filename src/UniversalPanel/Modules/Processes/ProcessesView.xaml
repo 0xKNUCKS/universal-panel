@@ -171,7 +171,7 @@
             </DataGridTemplateColumn.CellTemplate>
           </DataGridTemplateColumn>
           <DataGridTextColumn
-            Width="62"
+            Width="72"
             Binding="{Binding Pid}"
             Header="PID"
             SortMemberPath="Pid"

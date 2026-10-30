@@ -104,10 +104,10 @@
               </ContextMenu>
             </ui:DataGrid.ContextMenu>
             <ui:DataGrid.Columns>
-              <DataGridTextColumn Width="66" Binding="{Binding Tid}" Header="TID" SortMemberPath="Tid" />
-              <DataGridTextColumn Width="56" Binding="{Binding CpuText}" Header="CPU" SortMemberPath="Cpu" />
-              <DataGridTextColumn Width="*" MinWidth="80" Binding="{Binding State}" Header="State" SortMemberPath="State" />
-              <DataGridTextColumn Width="140" Binding="{Binding Start}" Header="Start" SortMemberPath="Start" />
+              <DataGridTextColumn Width="72" Binding="{Binding Tid}" Header="TID" SortMemberPath="Tid" />
+              <DataGridTextColumn Width="50" Binding="{Binding CpuText}" Header="CPU" SortMemberPath="Cpu" />
+              <DataGridTextColumn Width="116" Binding="{Binding State}" Header="State" SortMemberPath="State" />
+              <DataGridTextColumn Width="*" MinWidth="90" Binding="{Binding Start}" Header="Start" SortMemberPath="Start" />
             </ui:DataGrid.Columns>
           </ui:DataGrid>
           <ui:TextBlock
