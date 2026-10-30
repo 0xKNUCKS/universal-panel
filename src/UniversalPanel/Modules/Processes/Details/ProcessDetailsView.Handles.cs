@@ -63,6 +63,7 @@ internal sealed partial class ProcessDetailsView
         string name = TargetName;
         _handlesLoadedFor = target;
         HandlesSummary.Text = "Loading…";
+        _handles.Clear(); // Stale rows under the spinner read as "done"; show a clean loading state.
         await LoadingRing.ShowAsync(HandlesSpinner);
 
         // PID -> name for "Process" and "Thread" handles, from the latest list sample.

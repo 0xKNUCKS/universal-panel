@@ -27,6 +27,8 @@ internal sealed partial class ProcessDetailsView
         int version = ++_modulesLoadVersion;
         string name = TargetName;
         ModulesSummary.Text = "Loading…";
+        // Rows only: the records keep resolving thread start addresses until the new list lands.
+        _modules.Clear(); // Stale rows under the spinner read as "done"; show a clean loading state.
         await LoadingRing.ShowAsync(ModulesSpinner);
 
         List<ModuleRecord> records;
