@@ -61,11 +61,10 @@ internal static class PanelAnimator
 
     public static void BeginExit(Window window, UIElement content, Action completed)
     {
-        void OnCompleted()
-        {
-            window.Cloak();
-            completed();
-        }
+        // No cloak here: the caller hides the window normally, so DWM plays its own hide fade for
+        // the whole window. Cloaking made the acrylic backdrop vanish in one frame, which looked
+        // like the content fade was cut off (measured with burst screenshots).
+        void OnCompleted() => completed();
 
         window.Topmost = false;
         var slide = SlideOf(content);

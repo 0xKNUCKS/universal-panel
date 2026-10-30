@@ -41,6 +41,17 @@ internal static class WindowExtensions
             (uint)sizeof(BOOL));
     }
 
+    /// <summary>Clears DWMWA_TRANSITIONS_FORCEDISABLED so DWM animates show/hide normally.</summary>
+    public static unsafe void EnableDwmTransitions(this Window window)
+    {
+        BOOL disabled = false;
+        PInvoke.DwmSetWindowAttribute(
+            window.GetHwnd(),
+            DWMWINDOWATTRIBUTE.DWMWA_TRANSITIONS_FORCEDISABLED,
+            &disabled,
+            (uint)sizeof(BOOL));
+    }
+
     public static void ApplyExtendedWindowStyle(this Window window, WINDOW_EX_STYLE newExStyle)
     {
         var hwnd = window.GetHwnd();

@@ -31,7 +31,11 @@ public partial class PanelWindow : FluentWindow, IModuleHost
         InitializeComponent();
         ModuleList.ItemsSource = modules;
 
-        SourceInitialized += (_, _) => this.Cloak();
+        SourceInitialized += (_, _) =>
+        {
+            this.Cloak();
+            this.EnableDwmTransitions(); // DWM's hide fade carries the backdrop out (PanelAnimator).
+        };
         ErrorReporter.Notified += OnErrorNotified;
         Closed += (_, _) => ErrorReporter.Notified -= OnErrorNotified;
     }
@@ -69,6 +73,9 @@ public partial class PanelWindow : FluentWindow, IModuleHost
         }
 
         _isOpen = true;
+        // Cloak before showing: the window was hidden normally (for DWM's hide fade), and must not
+        // flash, or get DWM's show animation on top of ours, before it's positioned.
+        this.Cloak();
         Show();
 
         var rect = MonitorPlacement.RightEdgeOfMonitorUnderCursor(_settings.PanelWidth);
