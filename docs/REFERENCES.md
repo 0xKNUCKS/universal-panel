@@ -34,6 +34,7 @@ Reference snapshots (shallow clones, read 2026-10-29):
 | [thomaslevesque/NHotkey](https://github.com/thomaslevesque/NHotkey) | Apache-2.0 | `0def9e82b71d67b97026901a2f543202af430d09` |
 | [microsoft/PowerToys](https://github.com/microsoft/PowerToys) | MIT | `669a19ea9c50f6b42ecc8ee962e1323013c3656f` |
 | [HavenDV/H.NotifyIcon](https://github.com/HavenDV/H.NotifyIcon) | MIT | `d590d46aa18d480782c8aaf5bf4fee2b4c12accf` |
+| [winsiderss/systeminformer](https://github.com/winsiderss/systeminformer) | MIT | `c2f1489890f14de76b985c0142cbad154d92623d` |
 
 ### Shell
 
@@ -46,6 +47,12 @@ Reference snapshots (shallow clones, read 2026-10-29):
 | `src/UniversalPanel/Shell/PanelWindow.xaml.cs` (show/hide) | EarTrumpet `EarTrumpet/UI/Views/FlyoutWindow.xaml.cs` | Pre-warm with `Show(); Hide();` + `WS_EX_TOOLWINDOW`; position from monitor working area in physical pixels; cloak while hidden |
 | `src/UniversalPanel/Shell/PanelAnimator.cs` | EarTrumpet `EarTrumpet/UI/Helpers/WindowAnimationLibrary.cs` | Entrance/exit storyboard on `Window.Left` + opacity, `QuinticEase` ease-out, `FillBehavior.Stop` then commit final value; activate + `SetForegroundWindow` on completion |
 | `src/UniversalPanel/Shell/PanelWindow.xaml` | WPF-UI `src/Wpf.Ui/Controls/FluentWindow/FluentWindow.cs`, `Controls/Window/WindowBackdrop.cs` | `FluentWindow` + `ExtendsContentIntoTitleBar` + `WindowBackdropType` (backdrop requires extended content) |
+
+### Processes
+
+| Our file | Mirrors | What was taken |
+|---|---|---|
+| `src/UniversalPanel/Native/ProcessSnapshot.cs` | System Informer `phnt/include/ntexapi.h` `SYSTEM_PROCESS_INFORMATION`; `phlib/native.c` `PhEnumProcessesEx` | Field layout (0x100 bytes on x64); one `NtQuerySystemInformation(SystemProcessInformation)` call, grow on `STATUS_INFO_LENGTH_MISMATCH` / `STATUS_BUFFER_TOO_SMALL`, keep the size for next time; `PagefileUsage` as private bytes |
 
 ### Error handling
 
