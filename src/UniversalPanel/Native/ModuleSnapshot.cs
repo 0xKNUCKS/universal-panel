@@ -57,11 +57,19 @@ internal static class ModuleSnapshot
         }
 
         var modules = new List<ModuleRecord>(128);
+        // For a WOW64 process the two lists (TH32CS_SNAPMODULE + TH32CS_SNAPMODULE32) both contain
+        // the main executable; keep one entry per base address + path.
+        var seen = new HashSet<(ulong, string)>();
         try
         {
             var entry = new MODULEENTRY32W { dwSize = (uint)sizeof(MODULEENTRY32W) };
             for (bool ok = PInvoke.Module32FirstW(snapshot, &entry); ok; ok = PInvoke.Module32NextW(snapshot, &entry))
             {
+                if (!seen.Add(((ulong)entry.modBaseAddr, entry.szExePath.ToString().ToUpperInvariant())))
+                {
+                    continue;
+                }
+
                 modules.Add(new ModuleRecord(
                     entry.szModule.ToString(),
                     entry.szExePath.ToString(),
