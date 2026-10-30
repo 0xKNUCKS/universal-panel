@@ -26,10 +26,8 @@ internal sealed partial class ProcessesView : UserControl
 
         _view = (ListCollectionView)CollectionViewSource.GetDefaultView(_rows);
         _view.Filter = MatchesFilter;
-        _view.SortDescriptions.Add(new SortDescription(nameof(ProcessRow.Name), ListSortDirection.Ascending));
-        // Live sorting watches only the active sort key (see OnSorting). Name, the default, never
-        // changes, so nothing is watched until the user sorts by CPU or memory.
         _view.IsLiveSorting = true;
+        ApplyViewMode(); // Tree mode by default (ProcessesView.Tree.cs).
 
         Grid.ItemsSource = _view;
         BuildPriorityMenu();
@@ -37,7 +35,15 @@ internal sealed partial class ProcessesView : UserControl
         _filterDebounce = new DispatcherTimer(TimeSpan.FromMilliseconds(150), DispatcherPriority.Input, (_, _) =>
         {
             _filterDebounce!.Stop();
-            _view.Refresh();
+            // Starting or clearing a search switches between flat and tree mode.
+            if (TreeActive != _treeApplied)
+            {
+                ApplyViewMode();
+            }
+            else
+            {
+                _view.Refresh();
+            }
         }, Dispatcher);
         _filterDebounce.Stop();
 
@@ -59,6 +65,7 @@ internal sealed partial class ProcessesView : UserControl
             else
             {
                 row = new ProcessRow(sample);
+                row.SetTreeVisible(_treeApplied);
                 _byKey.Add(row.Key, row);
                 _rows.Add(row);
             }
@@ -73,6 +80,7 @@ internal sealed partial class ProcessesView : UserControl
             }
         }
 
+        UpdateTree(alive);
         Summary.Text = $"{frame.Processes.Count} processes · CPU {frame.SystemCpuPercent:0}%";
 
         if (DetailsOpen)
@@ -83,12 +91,17 @@ internal sealed partial class ProcessesView : UserControl
 
     private bool MatchesFilter(object item)
     {
+        var row = (ProcessRow)item;
+        if (_treeApplied)
+        {
+            return !row.IsHiddenByCollapse;
+        }
+
         if (_filter.Length == 0)
         {
             return true;
         }
 
-        var row = (ProcessRow)item;
         return row.Name.Contains(_filter, StringComparison.OrdinalIgnoreCase)
             || row.Pid.ToString(System.Globalization.CultureInfo.InvariantCulture).StartsWith(_filter, StringComparison.Ordinal);
     }
@@ -98,18 +111,6 @@ internal sealed partial class ProcessesView : UserControl
         _filter = SearchBox.Text.Trim();
         _filterDebounce.Stop();
         _filterDebounce.Start();
-    }
-
-    private void OnSorting(object sender, DataGridSortingEventArgs e)
-    {
-        // DataGrid replaces SortDescriptions itself; point live sorting at the new key only, so
-        // changes in columns we aren't sorted by never trigger a re-sort.
-        var path = e.Column.SortMemberPath;
-        _view.LiveSortingProperties.Clear();
-        if (LiveSortProperties.Contains(path))
-        {
-            _view.LiveSortingProperties.Add(path);
-        }
     }
 
     private void OnRowToolTipOpening(object sender, ToolTipEventArgs e)

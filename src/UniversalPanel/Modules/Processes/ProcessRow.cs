@@ -30,6 +30,91 @@ internal sealed class ProcessRow(ProcessSample sample) : INotifyPropertyChanged
     public ulong PrivateBytes => _sample.Record.PrivateBytes;
     public string MemoryText => _memoryText;
 
+    public int ParentPid => _sample.Record.ParentPid;
+
+    // --- Tree layout (set by ProcessTree.Layout; notifications only on change) ---------------
+
+    private const double IndentPerLevel = 14;
+    private int _depth;
+    private bool _hasChildren;
+    private int _treeOrder;
+    private bool _isHiddenByCollapse;
+    private bool _isExpanded = true;
+    private bool _treeVisible = true;
+
+    /// <summary>Position in the flattened tree; the view sorts by this in tree mode.</summary>
+    public int TreeOrder => _treeOrder;
+
+    /// <summary>An ancestor is collapsed; the view filters these out in tree mode.</summary>
+    public bool IsHiddenByCollapse => _isHiddenByCollapse;
+
+    public bool HasChildren => _hasChildren;
+
+    public bool IsExpanded => _isExpanded;
+
+    public int Depth => _depth;
+
+    public System.Windows.Thickness Indent => new(_treeVisible ? _depth * IndentPerLevel : 0, 0, 0, 0);
+
+    /// <summary>Hidden (space kept, so names align) for leaves; collapsed entirely in flat mode.</summary>
+    public System.Windows.Visibility ExpanderVisibility =>
+        !_treeVisible ? System.Windows.Visibility.Collapsed
+        : _hasChildren ? System.Windows.Visibility.Visible
+        : System.Windows.Visibility.Hidden;
+
+    public Wpf.Ui.Controls.SymbolRegular ExpanderSymbol =>
+        _isExpanded ? Wpf.Ui.Controls.SymbolRegular.ChevronDown12 : Wpf.Ui.Controls.SymbolRegular.ChevronRight12;
+
+    internal void SetTree(int depth, bool hasChildren, int order, bool hiddenByCollapse)
+    {
+        if (depth != _depth)
+        {
+            _depth = depth;
+            Raise(nameof(Depth));
+            Raise(nameof(Indent));
+        }
+
+        if (hasChildren != _hasChildren)
+        {
+            _hasChildren = hasChildren;
+            Raise(nameof(HasChildren));
+            Raise(nameof(ExpanderVisibility));
+        }
+
+        if (order != _treeOrder)
+        {
+            _treeOrder = order;
+            Raise(nameof(TreeOrder));
+        }
+
+        if (hiddenByCollapse != _isHiddenByCollapse)
+        {
+            _isHiddenByCollapse = hiddenByCollapse;
+            Raise(nameof(IsHiddenByCollapse));
+        }
+    }
+
+    internal void SetExpanded(bool expanded)
+    {
+        if (expanded != _isExpanded)
+        {
+            _isExpanded = expanded;
+            Raise(nameof(IsExpanded));
+            Raise(nameof(ExpanderSymbol));
+        }
+    }
+
+    /// <summary>Flat mode (searching, or tree turned off) shows no indent and no expanders.</summary>
+    internal void SetTreeVisible(bool visible)
+    {
+        if (visible != _treeVisible)
+        {
+            _treeVisible = visible;
+            Raise(nameof(Indent));
+            Raise(nameof(ExpanderVisibility));
+        }
+    }
+
     /// <summary>Built on demand when the tooltip opens; never raised, so it costs nothing per tick.</summary>
     public string Details =>
         $"{ImagePath ?? Name}\n" +

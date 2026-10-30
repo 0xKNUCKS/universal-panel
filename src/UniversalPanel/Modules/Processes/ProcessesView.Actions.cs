@@ -64,6 +64,10 @@ internal sealed partial class ProcessesView
             e.Handled = true;
             OpenDetails(selected);
         }
+        else if (e.Key is Key.Left or Key.Right && Selected is { } current && HandleTreeKey(e.Key, current))
+        {
+            e.Handled = true;
+        }
     }
 
     private void OnEndProcess(object sender, RoutedEventArgs e)

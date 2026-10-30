@@ -14,14 +14,31 @@
         <RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
 
-      <ui:TextBox
-        x:Name="SearchBox"
-        Grid.Row="0"
-        ClearButtonEnabled="True"
-        Icon="{ui:SymbolIcon Search24}"
-        PlaceholderText="Filter by name or PID"
-        TextChanged="OnSearchChanged"
-      />
+      <Grid Grid.Row="0">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <ui:TextBox
+          x:Name="SearchBox"
+          ClearButtonEnabled="True"
+          Icon="{ui:SymbolIcon Search24}"
+          PlaceholderText="Filter by name or PID"
+          TextChanged="OnSearchChanged"
+        />
+        <ui:Button
+          x:Name="TreeToggle"
+          Grid.Column="1"
+          Width="36"
+          Height="36"
+          Margin="8,0,0,0"
+          Padding="0"
+          Appearance="Primary"
+          Click="OnTreeToggleClick"
+          Icon="{ui:SymbolIcon TextBulletListTree24}"
+          ToolTip="Showing the process tree (click for a flat list)"
+        />
+      </Grid>
 
       <ui:DataGrid
         x:Name="Grid"
@@ -107,12 +124,29 @@
           </Style>
         </ui:DataGrid.RowStyle>
         <ui:DataGrid.Columns>
-          <DataGridTextColumn
-            Width="*"
-            Binding="{Binding Name}"
-            Header="Name"
-            SortMemberPath="Name"
-          />
+          <!--  Name with tree indent and expander (ProcessesView.Tree.cs)  -->
+          <DataGridTemplateColumn Width="*" Header="Name" SortMemberPath="Name">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <StackPanel Margin="{Binding Indent}" VerticalAlignment="Center" Orientation="Horizontal">
+                  <ui:Button
+                    Width="18"
+                    Height="18"
+                    Margin="0,0,2,0"
+                    Padding="0"
+                    Appearance="Transparent"
+                    BorderThickness="0"
+                    Click="OnExpanderClick"
+                    Focusable="False"
+                    Visibility="{Binding ExpanderVisibility}"
+                  >
+                    <ui:SymbolIcon FontSize="11" Symbol="{Binding ExpanderSymbol}" />
+                  </ui:Button>
+                  <TextBlock VerticalAlignment="Center" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
           <DataGridTextColumn
             Width="62"
             Binding="{Binding Pid}"
