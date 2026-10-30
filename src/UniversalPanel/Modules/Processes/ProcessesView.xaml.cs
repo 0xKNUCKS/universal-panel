@@ -25,12 +25,9 @@ internal sealed partial class ProcessesView : UserControl
         _view = (ListCollectionView)CollectionViewSource.GetDefaultView(_rows);
         _view.Filter = MatchesFilter;
         _view.SortDescriptions.Add(new SortDescription(nameof(ProcessRow.Name), ListSortDirection.Ascending));
-        // Live sorting only for values that change on their own; Name and PID never do.
+        // Live sorting watches only the active sort key (see OnSorting). Name, the default, never
+        // changes, so nothing is watched until the user sorts by CPU or memory.
         _view.IsLiveSorting = true;
-        foreach (var property in LiveSortProperties)
-        {
-            _view.LiveSortingProperties.Add(property);
-        }
 
         Grid.ItemsSource = _view;
         BuildPriorityMenu();
@@ -98,11 +95,21 @@ internal sealed partial class ProcessesView : UserControl
 
     private void OnSorting(object sender, DataGridSortingEventArgs e)
     {
-        // DataGrid replaces SortDescriptions itself; keep live sorting aware of the new key.
+        // DataGrid replaces SortDescriptions itself; point live sorting at the new key only, so
+        // changes in columns we aren't sorted by never trigger a re-sort.
         var path = e.Column.SortMemberPath;
-        if (!_view.LiveSortingProperties.Contains(path) && LiveSortProperties.Contains(path))
+        _view.LiveSortingProperties.Clear();
+        if (LiveSortProperties.Contains(path))
         {
             _view.LiveSortingProperties.Add(path);
+        }
+    }
+
+    private void OnRowToolTipOpening(object sender, ToolTipEventArgs e)
+    {
+        if (sender is DataGridRow { Item: ProcessRow row } container)
+        {
+            container.ToolTip = row.Details;
         }
     }
 }

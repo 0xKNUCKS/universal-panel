@@ -12,6 +12,7 @@ internal sealed class ProcessRow(ProcessSample sample) : INotifyPropertyChanged
 {
     private ProcessSample _sample = sample;
     private double _cpu = Math.Round(sample.CpuPercent, 1);
+    private string _memoryText = FormatBytes(sample.Record.PrivateBytes);
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -27,8 +28,9 @@ internal sealed class ProcessRow(ProcessSample sample) : INotifyPropertyChanged
     public string CpuText => _cpu >= 0.1 ? _cpu.ToString("0.0", System.Globalization.CultureInfo.CurrentCulture) : string.Empty;
 
     public ulong PrivateBytes => _sample.Record.PrivateBytes;
-    public string MemoryText => FormatBytes(PrivateBytes);
+    public string MemoryText => _memoryText;
 
+    /// <summary>Built on demand when the tooltip opens; never raised, so it costs nothing per tick.</summary>
     public string Details =>
         $"{ImagePath ?? Name}\n" +
         $"PID {Pid} · parent {_sample.Record.ParentPid} · session {_sample.Record.SessionId}\n" +
@@ -47,8 +49,12 @@ internal sealed class ProcessRow(ProcessSample sample) : INotifyPropertyChanged
             Raise(nameof(CpuText));
         }
 
-        if (next.Record.PrivateBytes != previous.Record.PrivateBytes)
+        // Private bytes drift by a few KB every tick for most processes; only notify when the
+        // displayed text changes, which is what the grid (and its sort, at display precision) sees.
+        var memoryText = FormatBytes(next.Record.PrivateBytes);
+        if (memoryText != _memoryText)
         {
+            _memoryText = memoryText;
             Raise(nameof(PrivateBytes));
             Raise(nameof(MemoryText));
         }
@@ -56,12 +62,6 @@ internal sealed class ProcessRow(ProcessSample sample) : INotifyPropertyChanged
         if (next.Record.BasePriority != previous.Record.BasePriority)
         {
             Raise(nameof(BasePriority));
-        }
-
-        // Details is only read when a tooltip opens; refresh it without per-tick churn.
-        if (next.Record.Threads != previous.Record.Threads || next.Record.Handles != previous.Record.Handles)
-        {
-            Raise(nameof(Details));
         }
     }
 

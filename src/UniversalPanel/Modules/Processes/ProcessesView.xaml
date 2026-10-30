@@ -91,7 +91,9 @@
       <ui:DataGrid.RowStyle>
         <!--  WPF-UI keys its row style; basing on the implicit type style would pick WPF's stock white rows.  -->
         <Style BasedOn="{StaticResource DefaultDataGridRowStyle}" TargetType="DataGridRow">
-          <Setter Property="ToolTip" Value="{Binding Details}" />
+          <!--  Non-null placeholder so ToolTipOpening fires; the text is filled in on open.  -->
+          <Setter Property="ToolTip" Value="" />
+          <EventSetter Event="ToolTipOpening" Handler="OnRowToolTipOpening" />
           <Setter Property="ToolTipService.InitialShowDelay" Value="700" />
         </Style>
       </ui:DataGrid.RowStyle>
