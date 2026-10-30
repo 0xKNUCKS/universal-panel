@@ -20,3 +20,5 @@ SetPriorityClass
 ILFree
 SHOpenFolderAndSelectItems
 SHParseDisplayName
+GetThreadTimes
+OpenThread

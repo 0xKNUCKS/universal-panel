@@ -69,6 +69,11 @@ internal sealed partial class ProcessesView
             e.Handled = true;
             _ = Guard.RunAsync("Processes.End", () => EndAsync(row));
         }
+        else if (e.Key == Key.Enter && Selected is { } selected)
+        {
+            e.Handled = true;
+            OpenDetails(selected);
+        }
     }
 
     private void OnEndProcess(object sender, RoutedEventArgs e)

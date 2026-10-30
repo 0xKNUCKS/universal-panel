@@ -11,7 +11,15 @@ namespace UniversalPanel.Modules.Processes;
 
 internal sealed record ProcessSample(ProcessRecord Record, double CpuPercent, string? ImagePath);
 
-internal sealed record ProcessFrame(IReadOnlyList<ProcessSample> Processes, double SystemCpuPercent);
+internal sealed record ThreadSample(ThreadRecord Record, double CpuPercent, ulong? StartAddress);
+
+/// <param name="Focus">The process whose threads are in <paramref name="FocusedThreads"/>.</param>
+/// <param name="FocusedThreads">Null when nothing is focused or the focused process has exited.</param>
+internal sealed record ProcessFrame(
+    IReadOnlyList<ProcessSample> Processes,
+    double SystemCpuPercent,
+    ProcessKey? Focus,
+    IReadOnlyList<ThreadSample>? FocusedThreads);
 
 /// <summary>
 /// Samples all processes on a background thread while started. Stopped = no timers, no work.
@@ -24,6 +32,9 @@ internal sealed class ProcessSampler : IDisposable
     private readonly ProcessSnapshotReader _reader = new();
     private readonly Dictionary<ProcessKey, long> _lastCpuTime = [];
     private readonly Dictionary<ProcessKey, string?> _paths = [];
+    private readonly Dictionary<ThreadKey, long> _lastThreadCpu = [];
+    private readonly Dictionary<ThreadKey, ulong?> _startAddresses = [];
+    private ProcessKey? _threadsOf;
     private readonly Lock _sampleLock = new();
     private ulong _lastSystemTotal;
     private ulong _lastSystemIdle;
@@ -31,6 +42,12 @@ internal sealed class ProcessSampler : IDisposable
 
     /// <summary>Raised on a background thread after every sample.</summary>
     public event Action<ProcessFrame>? Sampled;
+
+    /// <summary>
+    /// Process whose threads are sampled too (from the same snapshot), or null. Settable from any
+    /// thread; takes effect on the next tick.
+    /// </summary>
+    public ProcessKey? Focus { get; set; }
 
     public void Start()
     {
@@ -84,13 +101,15 @@ internal sealed class ProcessSampler : IDisposable
     private void ResetDeltas()
     {
         _lastCpuTime.Clear();
+        _lastThreadCpu.Clear();
         _lastSystemTotal = 0;
         _lastSystemIdle = 0;
     }
 
     private void Sample(bool publish)
     {
-        var records = _reader.Capture();
+        var focus = Focus;
+        var records = _reader.Capture(focus, out var threadRecords);
         var (systemTotal, systemIdle) = ProcessImage.GetSystemTimes();
 
         ulong totalDelta = _lastSystemTotal == 0 ? 0 : systemTotal - _lastSystemTotal;
@@ -125,14 +144,61 @@ internal sealed class ProcessSampler : IDisposable
         Prune(_lastCpuTime, seen);
         Prune(_paths, seen);
 
+        var threads = SampleThreads(focus, threadRecords, totalDelta);
+
         if (publish)
         {
             double systemCpu = totalDelta > 0 ? 100.0 * (1 - (double)idleDelta / totalDelta) : 0;
-            Sampled?.Invoke(new ProcessFrame(samples, Math.Clamp(systemCpu, 0, 100)));
+            Sampled?.Invoke(new ProcessFrame(samples, Math.Clamp(systemCpu, 0, 100), focus, threads));
         }
     }
 
-    private static void Prune<T>(Dictionary<ProcessKey, T> map, HashSet<ProcessKey> alive)
+    // Same CPU formula as processes (System Informer computes thread usage the same way).
+    private List<ThreadSample>? SampleThreads(ProcessKey? focus, List<ThreadRecord>? records, ulong totalDelta)
+    {
+        if (focus != _threadsOf)
+        {
+            _threadsOf = focus;
+            _lastThreadCpu.Clear();
+            _startAddresses.Clear();
+        }
+
+        if (records is null)
+        {
+            return null;
+        }
+
+        var samples = new List<ThreadSample>(records.Count);
+        var seen = new HashSet<ThreadKey>(records.Count);
+        foreach (var record in records)
+        {
+            var key = new ThreadKey(record.Tid, record.CreateTime);
+            seen.Add(key);
+
+            double cpu = 0;
+            if (totalDelta > 0 && _lastThreadCpu.TryGetValue(key, out var previous))
+            {
+                cpu = Math.Max(0, record.CpuTime100ns - previous) * 100.0 / totalDelta;
+            }
+
+            _lastThreadCpu[key] = record.CpuTime100ns;
+
+            // One query per thread instance, then cached (the start address never changes).
+            if (!_startAddresses.TryGetValue(key, out var start))
+            {
+                _startAddresses[key] = start = ThreadControl.TryGetStartAddress(key);
+            }
+
+            samples.Add(new ThreadSample(record, cpu, start));
+        }
+
+        Prune(_lastThreadCpu, seen);
+        Prune(_startAddresses, seen);
+        return samples;
+    }
+
+    private static void Prune<TKey, T>(Dictionary<TKey, T> map, HashSet<TKey> alive)
+        where TKey : notnull
     {
         if (map.Count == alive.Count)
         {

@@ -15,11 +15,13 @@ internal sealed partial class ProcessesView : UserControl
     private readonly Dictionary<ProcessKey, ProcessRow> _byKey = [];
     private readonly ListCollectionView _view;
     private readonly DispatcherTimer _filterDebounce;
+    private readonly ProcessSampler _sampler;
     private string _filter = string.Empty;
 
     public ProcessesView(IModuleHost host, ProcessSampler sampler)
     {
         Host = host;
+        _sampler = sampler;
         InitializeComponent();
 
         _view = (ListCollectionView)CollectionViewSource.GetDefaultView(_rows);
@@ -72,6 +74,11 @@ internal sealed partial class ProcessesView : UserControl
         }
 
         Summary.Text = $"{frame.Processes.Count} processes · CPU {frame.SystemCpuPercent:0}%";
+
+        if (DetailsOpen)
+        {
+            _details?.Apply(frame);
+        }
     }
 
     private bool MatchesFilter(object item)

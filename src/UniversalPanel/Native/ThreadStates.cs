@@ -31,15 +31,25 @@ internal static class ThreadStates
         state == Waiting && waitReason is WrSuspendedReason or WrSuspended;
 
     /// <summary>"Running", or "Wait: UserRequest" style for waiting threads, like System Informer.</summary>
-    public static string Describe(int state, int waitReason)
+    public static string Describe(int state, int waitReason) =>
+        state == Waiting && !IsSuspended(state, waitReason) ? $"Wait: {Reason(waitReason)}" : Short(state, waitReason);
+
+    /// <summary>Compact form for narrow columns: the wait reason alone for waiting threads.</summary>
+    public static string Short(int state, int waitReason)
     {
-        var name = (uint)state < States.Length ? States[state] : $"State {state}";
-        if (state != Waiting)
+        if (IsSuspended(state, waitReason))
         {
-            return name;
+            return "Suspended";
         }
 
-        var reason = (uint)waitReason < WaitReasons.Length ? WaitReasons[waitReason] : $"{waitReason}";
-        return IsSuspended(state, waitReason) ? "Suspended" : $"Wait: {reason}";
+        if (state == Waiting)
+        {
+            return Reason(waitReason);
+        }
+
+        return (uint)state < States.Length ? States[state] : $"State {state}";
     }
+
+    private static string Reason(int waitReason) =>
+        (uint)waitReason < WaitReasons.Length ? WaitReasons[waitReason] : $"{waitReason}";
 }
