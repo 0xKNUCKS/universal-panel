@@ -29,3 +29,8 @@ TerminateThread
 CreateToolhelp32Snapshot
 Module32FirstW
 Module32NextW
+DuplicateHandle
+GetCurrentProcess
+GetProcessId
+GetThreadId
+QueryDosDevice
