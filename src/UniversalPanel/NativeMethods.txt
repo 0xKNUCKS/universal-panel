@@ -52,3 +52,7 @@ GetMappedFileName
 MEMORY_BASIC_INFORMATION
 ReadProcessMemory
 VirtualQueryEx
+GetAncestor
+GetWindowText
+GetWindowThreadProcessId
+WindowFromPoint
