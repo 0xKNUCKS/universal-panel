@@ -155,7 +155,20 @@ internal sealed partial class ProcessesView
         }
 
         row.SetExpanded(expanded);
+        RelayoutAtOnce();
+    }
+
+    /// <summary>
+    /// Re-lays out for an expand / collapse with live sorting paused. Only IsHiddenByCollapse
+    /// changes (TreeOrder covers hidden rows too), but each row live filtering removes from a
+    /// live-sorted view also updated the sort bookkeeping: collapsing a 223-row subtree took
+    /// ~520 ms, ~24 ms this way. Rows re-added on expand still go in sorted position.
+    /// </summary>
+    private void RelayoutAtOnce()
+    {
+        _view.IsLiveSorting = false;
         Relayout();
+        _view.IsLiveSorting = true;
     }
 
     /// <summary>Right expands; Left collapses, or moves to the parent when already collapsed.</summary>
