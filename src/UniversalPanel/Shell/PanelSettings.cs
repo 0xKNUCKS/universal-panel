@@ -63,10 +63,15 @@ internal sealed class PanelSettings
 
     // --- Tools module ---------------------------------------------------------------------
 
-    /// <summary>Launcher entries, in display order: full paths to executables or scripts.
-    /// Deliberately no "always run as administrator" flag: this file is user-writable, so it must
-    /// never be able to make an elevated panel start something elevated without a click.</summary>
-    public List<string> Tools { get; set; } = [];
+    /// <summary>Launcher entries (shown sorted by name). Older versions saved plain paths;
+    /// <see cref="ToolEntryConverter"/> still reads those.</summary>
+    public List<ToolEntry> Tools { get; set; } = [];
+
+    /// <summary>Tools shown in collapsible sections by category (off: one grid).</summary>
+    public bool ToolSections { get; set; } = true;
+
+    /// <summary>Sections the user collapsed.</summary>
+    public List<string> ToolSectionsCollapsed { get; set; } = [];
 
     private static PanelSettings Load()
     {
@@ -103,10 +108,11 @@ internal sealed class PanelSettings
         }
 
         Tools = (Tools ?? [])
-            .Where(t => t is { Length: > 3 and < 1024 } && Path.IsPathFullyQualified(t) && !t.Contains('"'))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(t => t is not null && t.Sanitize())
+            .DistinctBy(t => t.Path, StringComparer.OrdinalIgnoreCase)
             .Take(200)
             .ToList();
+        ToolSectionsCollapsed = (ToolSectionsCollapsed ?? []).Where(c => c is { Length: > 0 and <= 40 }).Distinct().Take(20).ToList();
 
         if (string.IsNullOrWhiteSpace(PanelMonitor) || PanelMonitor.Length > 64)
         {

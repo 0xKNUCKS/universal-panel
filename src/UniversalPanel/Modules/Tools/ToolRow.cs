@@ -2,34 +2,56 @@ using System.ComponentModel;
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using UniversalPanel.Native;
+using UniversalPanel.Shell;
 using Wpf.Ui.Controls;
 
 namespace UniversalPanel.Modules.Tools;
 
-/// <summary>One launcher entry. Starts with just the path; identity and icon arrive later.</summary>
-internal sealed class ToolRow(string path) : INotifyPropertyChanged
+/// <summary>
+/// One launcher entry: the saved <see cref="ToolEntry"/> plus what the panel reads from the file
+/// (identity, icon). Starts with just the entry; identity and icon arrive from <see cref="Inspect"/>.
+/// </summary>
+internal sealed class ToolRow(ToolEntry entry) : INotifyPropertyChanged
 {
+    private static readonly string[] ImageExtensions = [".png", ".jpg", ".jpeg", ".bmp", ".gif"];
+
+    /// <summary>Icons are extracted at the tile size (48 DIP, in device pixels), not the 16 px small icon.</summary>
+    public const int IconSize = 48;
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public string Path { get; } = path;
+    public ToolEntry Entry { get; private set; } = entry;
+
+    public string Path => Entry.Path;
 
     public ToolIdentity Identity { get; private set; } =
-        new(System.IO.Path.GetFileNameWithoutExtension(path), null, ToolTrust.Unknown, string.Empty, null);
+        new(System.IO.Path.GetFileNameWithoutExtension(entry.Path), null, ToolTrust.Unknown, string.Empty, null);
 
     public ImageSource? Icon { get; private set; }
 
     public bool Exists { get; private set; } = true;
 
-    public string Name => Identity.Name;
+    /// <summary>The user's name for it, else what the file says it is.</summary>
+    public string Name => Entry.Name ?? Identity.Name;
 
     public string Version => Exists ? Identity.Version ?? string.Empty : "Missing";
+
+    /// <summary>The user's sections, else the catalog's defaults for this tool.</summary>
+    public IReadOnlyList<string> Categories => Entry.Categories is { Count: > 0 } chosen ? chosen : ToolCatalog.DefaultCategories(Identity.Known);
 
     public string Subtitle => !Exists
         ? "Missing: " + Path
         : string.Join(" · ", new[] { Identity.Version, Identity.Publisher }.Where(s => !string.IsNullOrEmpty(s)).DefaultIfEmpty(System.IO.Path.GetFileName(Path)));
 
-    public string ToolTipText => string.IsNullOrEmpty(Identity.Detail) ? Path : $"{Identity.Detail}\n{Path}";
+    public string ToolTipText => string.Join("\n", new[]
+    {
+        Name != Identity.Name ? $"{Name} ({Identity.Name})" : Name,
+        Identity.Detail,
+        string.Join(", ", Categories),
+        Path,
+    }.Where(s => !string.IsNullOrEmpty(s)));
 
     public string BadgeText => Identity.Trust switch
     {
@@ -58,25 +80,73 @@ internal sealed class ToolRow(string path) : INotifyPropertyChanged
 
     public double Opacity => Exists ? 1 : 0.5;
 
+    /// <summary>Case-insensitive match on name, what the file says, publisher, sections and path.</summary>
+    public bool Matches(string query) =>
+        query.Length == 0
+        || Name.Contains(query, StringComparison.OrdinalIgnoreCase)
+        || Identity.Name.Contains(query, StringComparison.OrdinalIgnoreCase)
+        || Identity.Publisher?.Contains(query, StringComparison.OrdinalIgnoreCase) == true
+        || Categories.Any(c => c.Contains(query, StringComparison.OrdinalIgnoreCase))
+        || Path.Contains(query, StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Reads identity and icon; runs off the UI thread (signature checks take a while).</summary>
     public (ToolIdentity Identity, ImageSource? Icon, bool Exists) Inspect()
     {
-        if (!File.Exists(Path))
+        var entry = Entry;
+        if (!File.Exists(entry.Path))
         {
-            return (Identity, null, false);
+            return (Identity, LoadIcon(entry.Icon), false);
         }
 
-        var identity = ToolCatalog.Identify(Path);
+        var identity = ToolCatalog.Identify(entry.Path);
         // Ghidra starts from a .bat; its own icon ships in support\.
-        string iconSource = identity.Name == "Ghidra" && File.Exists(GhidraIcon) ? GhidraIcon : Path;
-        return (identity, ProcessIcons.Get(iconSource), true);
+        string ghidraIcon = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(entry.Path) ?? string.Empty, "support", "ghidra.ico");
+        string defaultIcon = identity.Known == "Ghidra" && File.Exists(ghidraIcon) ? ghidraIcon : entry.Path;
+        return (identity, LoadIcon(entry.Icon) ?? ProcessIcons.Get(defaultIcon, IconSize), true);
     }
 
-    private string GhidraIcon => System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Path) ?? string.Empty, "support", "ghidra.ico");
+    /// <summary>A custom icon: images are decoded directly, anything else (.ico, .exe, .dll) through the shell.</summary>
+    public static ImageSource? LoadIcon(string? path)
+    {
+        if (path is null || !File.Exists(path))
+        {
+            return null;
+        }
+
+        if (!ImageExtensions.Contains(System.IO.Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
+        {
+            return ProcessIcons.Get(path, IconSize);
+        }
+
+        try
+        {
+            var image = new BitmapImage();
+            image.BeginInit();
+            image.UriSource = new Uri(path);
+            image.CacheOption = BitmapCacheOption.OnLoad; // don't keep the file open
+            image.DecodePixelWidth = 256; // plenty for a 48 DIP tile at 400% DPI
+            image.EndInit();
+            image.Freeze();
+            return image;
+        }
+        catch (Exception ex) when (ex is IOException or NotSupportedException or UnauthorizedAccessException or ArgumentException)
+        {
+            return null;
+        }
+    }
 
     public void Apply((ToolIdentity Identity, ImageSource? Icon, bool Exists) result)
     {
         (Identity, Icon, Exists) = result;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty)); // everything changed
+        Changed();
     }
+
+    /// <summary>Takes the edited entry; call <see cref="Inspect"/> again for a new path or icon.</summary>
+    public void Update(ToolEntry entry)
+    {
+        Entry = entry;
+        Changed();
+    }
+
+    private void Changed() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
 }

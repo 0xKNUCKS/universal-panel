@@ -13,7 +13,7 @@ internal sealed class FoundTool(ToolRow tool, bool alreadyAdded) : INotifyProper
 
     public bool CanAdd { get; } = !alreadyAdded;
 
-    public string? Note => CanAdd ? null : "Already in your list";
+    public string? Note => CanAdd ? null : "Already added";
 
     public bool IsChecked
     {

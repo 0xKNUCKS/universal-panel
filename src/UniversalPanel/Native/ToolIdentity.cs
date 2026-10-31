@@ -17,7 +17,8 @@ namespace UniversalPanel.Native;
 
 internal enum ToolTrust { Unknown, Identified, Verified, Warning }
 
-internal sealed record ToolIdentity(string Name, string? Version, ToolTrust Trust, string Detail, string? Publisher);
+/// <param name="Known">The catalog entry it matched ("IDA", "Sysinternals", ...), or null.</param>
+internal sealed record ToolIdentity(string Name, string? Version, ToolTrust Trust, string Detail, string? Publisher, string? Known = null);
 
 internal static class ToolCatalog
 {
@@ -45,6 +46,23 @@ internal static class ToolCatalog
         new("Wireshark", v => v.ProductName == "Wireshark", Signer: "Wireshark Foundation"),
         new("Postman", v => v.ProductName == "Postman", Signer: "Postman"),
     ];
+
+    /// <summary>
+    /// The sections a known tool goes in by default (the user can change them per tool). A tool
+    /// can be in several: x64dbg is both a debugger and a reverse-engineering tool.
+    /// </summary>
+    public static IReadOnlyList<string> DefaultCategories(string? known) => known switch
+    {
+        "IDA" or "Ghidra" or "Binary Ninja" or "Cutter" => [ToolCategories.Reversing],
+        "x64dbg" => [ToolCategories.Reversing, ToolCategories.Debugging],
+        "WinDbg" => [ToolCategories.Debugging],
+        "dnSpy" => [ToolCategories.Reversing, ToolCategories.Debugging, ToolCategories.DotNet],
+        "ILSpy" => [ToolCategories.Reversing, ToolCategories.DotNet],
+        "Detect It Easy" or "PE-bear" or "CFF Explorer" or "HxD" or "ImHex" => [ToolCategories.Binary],
+        "System Informer" or "Process Hacker" or "Sysinternals" => [ToolCategories.System],
+        "Wireshark" or "Postman" => [ToolCategories.Network],
+        _ => [ToolCategories.Other],
+    };
 
     /// <summary>What the file is; never throws (unreadable files come back Unknown).</summary>
     public static ToolIdentity Identify(string path)
@@ -79,7 +97,7 @@ internal static class ToolCatalog
             // Sysinternals tools are one entry per tool; keep their own name.
             string display = known.Name == "Sysinternals" ? Clean(info.FileDescription) ?? known.Name : known.Name;
             var (state, detail) = Judge(known, trust);
-            return new(display, version, state, detail, Clean(info.CompanyName));
+            return new(display, version, state, detail, Clean(info.CompanyName), known.Name);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
         {
@@ -134,7 +152,7 @@ internal static class ToolCatalog
             version += $" {release}";
         }
 
-        return new("Ghidra", version, ToolTrust.Identified, "Identified from Ghidra\\application.properties (Ghidra isn't signed)", "NSA");
+        return new("Ghidra", version, ToolTrust.Identified, "Identified from Ghidra\\application.properties (Ghidra isn't signed)", "NSA", "Ghidra");
     }
 
     private static string? Clean(string? value) =>
