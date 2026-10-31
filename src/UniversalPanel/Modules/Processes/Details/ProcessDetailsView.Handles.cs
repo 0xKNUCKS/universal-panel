@@ -47,6 +47,11 @@ internal sealed partial class ProcessDetailsView
         {
             _ = Guard.RunAsync("Details.Handles", LoadHandlesAsync);
         }
+
+        if (e.OriginalSource == Tabs)
+        {
+            LoadMemoryIfNeeded();
+        }
     }
 
     private void OnRefreshHandles(object sender, RoutedEventArgs e) =>

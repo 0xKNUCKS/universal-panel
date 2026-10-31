@@ -32,6 +32,7 @@ internal sealed partial class ProcessDetailsView : UserControl
         ThreadsGrid.ItemsSource = _threadsView;
         ModulesGrid.ItemsSource = _modules;
         InitializeHandles();
+        InitializeMemory();
     }
 
     internal IModuleHost Host { get; }
@@ -61,6 +62,7 @@ internal sealed partial class ProcessDetailsView : UserControl
         _ = Guard.RunAsync("Details.Modules", LoadModulesAsync);
 
         ResetHandles();
+        ResetMemory();
     }
 
     /// <summary>Moves keyboard focus into the page so Backspace and the grid keys reach it.</summary>
@@ -141,6 +143,7 @@ internal sealed partial class ProcessDetailsView : UserControl
             {
                 ThreadRow thread => thread.Details,
                 HandleRow handle => handle.Details,
+                MemoryRow memory => memory.Details,
                 ModuleRow module => $"{module.Path}\nBase {module.BaseText} · size {module.SizeText}",
                 _ => null,
             };
