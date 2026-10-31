@@ -119,6 +119,13 @@
                 <ui:SymbolIcon Symbol="Copy24" />
               </MenuItem.Icon>
             </MenuItem>
+            <MenuItem Header="Create dump">
+              <MenuItem.Icon>
+                <ui:SymbolIcon Symbol="Save24" />
+              </MenuItem.Icon>
+              <MenuItem Click="OnFullDump" Header="Full dump" ToolTip="Whole memory, handles and threads; for WinDbg / IDA" />
+              <MenuItem Click="OnMiniDump" Header="Minidump" ToolTip="Threads, modules and data segments only; small" />
+            </MenuItem>
             <!--  Items are added in ProcessesView.Priority.cs  -->
             <MenuItem x:Name="PriorityMenu" Header="Priority">
               <MenuItem.Icon>
