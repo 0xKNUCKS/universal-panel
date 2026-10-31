@@ -43,17 +43,6 @@
         </ComboBox>
       </ui:CardControl>
 
-      <ui:CardControl Margin="0,0,0,8" Icon="{ui:SymbolIcon DarkTheme24}">
-        <ui:CardControl.Header>
-          <ui:TextBlock Style="{StaticResource Title}" Text="Theme" />
-        </ui:CardControl.Header>
-        <ComboBox x:Name="ThemeBox" MinWidth="150" SelectionChanged="OnThemeChanged">
-          <ComboBoxItem Content="Dark" Tag="Dark" />
-          <ComboBoxItem Content="Light" Tag="Light" />
-          <ComboBoxItem Content="Follow Windows" Tag="System" />
-        </ComboBox>
-      </ui:CardControl>
-
       <ui:CardControl Margin="0,0,0,8" Icon="{ui:SymbolIcon Pulse24}">
         <ui:CardControl.Header>
           <StackPanel>

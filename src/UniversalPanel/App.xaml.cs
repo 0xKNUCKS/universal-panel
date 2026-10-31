@@ -80,7 +80,8 @@ public partial class App : Application, ISingleInstanceApp
         base.OnStartup(e);
 
         var settings = PanelSettings.Current;
-        ThemeSettings.Apply(settings.Theme);
+        // Dark only: the acrylic panel and its secondary text are tuned for it (light had poor contrast).
+        ThemeSettings.Apply("Dark");
         ProcessSampler.Interval = TimeSpan.FromSeconds(settings.ProcessRefreshSeconds);
 
         var settingsModule = new SettingsModule(new SettingsActions(

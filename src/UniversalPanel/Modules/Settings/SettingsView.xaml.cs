@@ -34,7 +34,6 @@ internal sealed partial class SettingsView : UserControl
         {
             CancelCapture();
             Select(StartupBox, Settings.StartWithWindows);
-            Select(ThemeBox, Settings.Theme);
             Select(RefreshBox, Settings.ProcessRefreshSeconds.ToString(CultureInfo.InvariantCulture));
         }
         finally
@@ -132,17 +131,7 @@ internal sealed partial class SettingsView : UserControl
         }
     }
 
-    // --- Theme, refresh, width, logs ---------------------------------------------------------
-
-    private void OnThemeChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (!_loading && TagOf(ThemeBox) is { } theme)
-        {
-            ThemeSettings.Apply(theme);
-            Settings.Theme = theme;
-            Settings.SaveSoon();
-        }
-    }
+    // --- Refresh, width, logs ---------------------------------------------------------
 
     private void OnRefreshChanged(object sender, SelectionChangedEventArgs e)
     {
