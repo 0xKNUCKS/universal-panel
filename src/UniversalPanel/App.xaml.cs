@@ -55,6 +55,7 @@ public partial class App : Application, ISingleInstanceApp
             var app = new App();
             ErrorReporter.InstallGlobalHandlers(app);
             app.InitializeComponent();
+            FixToolTipAlignment(app);
             app.Run();
         }
         catch (Exception ex)
@@ -72,6 +73,23 @@ public partial class App : Application, ISingleInstanceApp
 
             Log.Info("App", "Exited.");
             Log.Flush();
+        }
+    }
+
+    /// <summary>
+    /// WPF-UI justifies tooltip text (Controls/ToolTip/ToolTip.xaml), stretching the spaces on every
+    /// wrapped line. Done in code on purpose: an implicit XAML style with
+    /// BasedOn="{StaticResource {x:Type ToolTip}}" in App.xaml resolves lazily, finds itself instead
+    /// of WPF-UI's style, and silently falls back to the default light tooltip.
+    /// </summary>
+    private static void FixToolTipAlignment(Application app)
+    {
+        if (app.TryFindResource(typeof(System.Windows.Controls.ToolTip)) is Style wpfUi)
+        {
+            var style = new Style(typeof(System.Windows.Controls.ToolTip), wpfUi);
+            style.Setters.Add(new Setter(System.Windows.Controls.TextBlock.TextAlignmentProperty, TextAlignment.Left));
+            style.Seal();
+            app.Resources[typeof(System.Windows.Controls.ToolTip)] = style;
         }
     }
 

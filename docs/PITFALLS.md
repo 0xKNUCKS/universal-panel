@@ -73,3 +73,7 @@ Known traps for this kind of app. Check the relevant section before implementing
 - Leave GC defaults alone; don't call `EmptyWorkingSet` to fake low RAM.
 - H.NotifyIcon's `ForceCreate()` defaults to enabling Windows 11 Efficiency Mode for the whole
   process. Call `ForceCreate(false)` or the panel and its monitors get throttled.
+- WPF-UI implicit styles: an App.xaml style with `BasedOn="{StaticResource {x:Type ToolTip}}"`
+  (same key as itself) resolves lazily, finds itself instead of WPF-UI's style and silently falls
+  back to the default light control. Extend WPF-UI styles in code from the found `Style` object
+  (see `App.FixToolTipAlignment`), and check against the real compiled App, not `XamlReader.Parse`.
