@@ -41,3 +41,9 @@ SHDefExtractIcon
 SHGetStockIconInfo
 GetSystemMetrics
 GlobalMemoryStatusEx
+GetTokenInformation
+IsWow64Process2
+OpenProcessToken
+TOKEN_ELEVATION
+TOKEN_MANDATORY_LABEL
+TOKEN_USER
