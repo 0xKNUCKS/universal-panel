@@ -11,6 +11,12 @@
         <ui:ThemesDictionary Theme="Dark" />
         <ui:ControlsDictionary />
       </ResourceDictionary.MergedDictionaries>
+
+      <!-- WPF-UI justifies tooltip text (Controls/ToolTip/ToolTip.xaml), which stretches the
+           spaces on every wrapped line; paths and sentences read better left-aligned. -->
+      <Style BasedOn="{StaticResource {x:Type ToolTip}}" TargetType="ToolTip">
+        <Setter Property="TextBlock.TextAlignment" Value="Left" />
+      </Style>
     </ResourceDictionary>
   </Application.Resources>
 </Application>
