@@ -41,6 +41,10 @@ dotnet build -c Release
 
 The output is in `src/UniversalPanel/bin/Release/net10.0-windows/win-x64/`.
 
+The first build downloads [Detect It Easy](https://github.com/horsicq/DIE-engine) 3.21 (about 25 MB,
+cached in `obj/`) and checks it against a pinned SHA-256; see `third_party/die/Die.targets`.
+Offline, the build still succeeds and the panel runs without it. `-p:SkipDie=true` skips it.
+
 ## Layout
 
 ```

@@ -1,0 +1,58 @@
+<Project>
+  <!--
+    Detect It Easy (diec, the CLI) is fetched at build time instead of being committed:
+    the release zip is pinned by version and SHA-256 (the digest GitHub publishes for the asset),
+    downloaded once into obj/, and only the files listed in manifest.sha256 are copied next to
+    the panel. The same manifest is embedded in the panel, which re-checks every file before
+    each run (see Native/DieScanner.cs). To update: change the three properties, regenerate
+    manifest.sha256 from the new zip, and review the diff.
+    Offline builds still succeed; the panel then falls back to its own Platform rules.
+  -->
+  <PropertyGroup>
+    <DieVersion>3.21</DieVersion>
+    <DieUrl>https://github.com/horsicq/DIE-engine/releases/download/3.21/die_win64_portable_3.21_x64.zip</DieUrl>
+    <DieSha256>078f2934f267392247f9c7b759a1c2457a48bc2000b25b80c2f129955ee4a3b9</DieSha256>
+    <DieManifest>$(MSBuildThisFileDirectory)manifest.sha256</DieManifest>
+    <DieCache>$(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)die\$(DieVersion)\</DieCache>
+    <DieZip>$(DieCache)die.zip</DieZip>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="$(DieManifest)" LogicalName="die.manifest.sha256" />
+    <None Include="$(MSBuildThisFileDirectory)LICENSE" Link="die\LICENSE.txt" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+
+  <Target Name="FetchDie" AfterTargets="Build" Condition="'$(SkipDie)' != 'true'">
+    <DownloadFile Condition="!Exists('$(DieZip)')" SourceUrl="$(DieUrl)" DestinationFolder="$(DieCache)" DestinationFileName="die.zip.part" Retries="2" ContinueOnError="WarnAndContinue" />
+    <Copy Condition="!Exists('$(DieZip)') And Exists('$(DieCache)die.zip.part')" SourceFiles="$(DieCache)die.zip.part" DestinationFiles="$(DieZip)" />
+    <Delete Files="$(DieCache)die.zip.part" />
+    <Warning Condition="!Exists('$(DieZip)')" Text="Detect It Easy $(DieVersion) could not be downloaded; the panel will run without it." />
+
+    <GetFileHash Condition="Exists('$(DieZip)')" Files="$(DieZip)" Algorithm="SHA256">
+      <Output TaskParameter="Hash" PropertyName="_DieZipHash" />
+    </GetFileHash>
+    <PropertyGroup>
+      <_DieHashOk Condition="Exists('$(DieZip)')">$([System.String]::Equals('$(_DieZipHash)', '$(DieSha256)', System.StringComparison.OrdinalIgnoreCase))</_DieHashOk>
+    </PropertyGroup>
+    <Delete Condition="'$(_DieHashOk)' == 'False'" Files="$(DieZip)" />
+    <Error Condition="'$(_DieHashOk)' == 'False'" Text="Detect It Easy download does not match the pinned SHA-256 (got $(_DieZipHash)); it was deleted. Do not bypass this." />
+
+    <Unzip Condition="'$(_DieHashOk)' == 'True' And !Exists('$(DieCache)x\die\diec.exe')" SourceFiles="$(DieZip)" DestinationFolder="$(DieCache)x" />
+
+    <ReadLinesFromFile Condition="'$(_DieHashOk)' == 'True'" File="$(DieManifest)">
+      <Output TaskParameter="Lines" ItemName="_DieManifestLine" />
+    </ReadLinesFromFile>
+    <ItemGroup Condition="'$(_DieHashOk)' == 'True'">
+      <!-- "<sha256> <relative path>": copy exactly the listed files, nothing else from the zip. -->
+      <_DieFile Include="@(_DieManifestLine->Substring(65))" />
+    </ItemGroup>
+
+    <!-- A fresh folder per version, so no stray file from an older one is left beside diec. -->
+    <ReadLinesFromFile File="$(OutDir)die.version">
+      <Output TaskParameter="Lines" PropertyName="_DieInstalled" />
+    </ReadLinesFromFile>
+    <RemoveDir Condition="'$(_DieHashOk)' == 'True' And '$(_DieInstalled)' != '$(DieVersion)'" Directories="$(OutDir)die\bin" />
+    <Copy Condition="'$(_DieHashOk)' == 'True'" SourceFiles="@(_DieFile->'$(DieCache)x\die\%(Identity)')" DestinationFiles="@(_DieFile->'$(OutDir)die\bin\%(Identity)')" SkipUnchangedFiles="true" />
+    <WriteLinesToFile Condition="'$(_DieHashOk)' == 'True'" File="$(OutDir)die.version" Lines="$(DieVersion)" Overwrite="true" />
+  </Target>
+</Project>

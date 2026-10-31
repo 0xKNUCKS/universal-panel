@@ -33,4 +33,7 @@
     </PackageReference>
   </ItemGroup>
 
+  <!-- Detect It Easy CLI: pinned download + manifest; see third_party/die/Die.targets. -->
+  <Import Project="..\..\third_party\die\Die.targets" />
+
 </Project>
