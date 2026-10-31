@@ -78,7 +78,7 @@ public partial class PanelWindow : FluentWindow, IModuleHost
         this.Cloak();
         Show();
 
-        var rect = MonitorPlacement.RightEdgeOfMonitorUnderCursor(_settings.PanelWidth);
+        var rect = MonitorPlacement.RightEdge(_settings.PanelWidth, _settings.PanelMonitor);
         _rect = rect;
         // Twice on purpose: the first move can land on a monitor with a different DPI, and WPF
         // then rescales the window (WM_DPICHANGED) during that call. The second call sets the
@@ -204,7 +204,7 @@ public partial class PanelWindow : FluentWindow, IModuleHost
         _settings.Save();
         if (_isOpen)
         {
-            _rect = MonitorPlacement.RightEdgeOfMonitorUnderCursor(_settings.PanelWidth);
+            _rect = MonitorPlacement.RightEdge(_settings.PanelWidth, _settings.PanelMonitor);
             this.SetWindowPos(_rect.X, _rect.Y, _rect.Width, _rect.Height);
         }
     }

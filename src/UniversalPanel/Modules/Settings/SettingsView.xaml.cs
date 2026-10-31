@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using UniversalPanel.Diagnostics;
 using UniversalPanel.Modules.Processes;
+using UniversalPanel.Native;
 using UniversalPanel.Shell;
 using Wpf.Ui.Controls;
 
@@ -35,6 +36,7 @@ internal sealed partial class SettingsView : UserControl
             CancelCapture();
             Select(StartupBox, Settings.StartWithWindows);
             Select(RefreshBox, Settings.ProcessRefreshSeconds.ToString(CultureInfo.InvariantCulture));
+            FillMonitors();
         }
         finally
         {
@@ -128,6 +130,40 @@ internal sealed partial class SettingsView : UserControl
         finally
         {
             StartupBox.IsEnabled = true;
+        }
+    }
+
+    // --- Monitor ------------------------------------------------------------------------------
+
+    /// <summary>Cursor / primary, then every connected display; a saved display that isn't
+    /// connected right now stays listed so the choice isn't silently lost.</summary>
+    private void FillMonitors()
+    {
+        MonitorBox.Items.Clear();
+        MonitorBox.Items.Add(new ComboBoxItem { Content = "Monitor with the mouse cursor", Tag = MonitorPlacement.UnderCursor });
+        MonitorBox.Items.Add(new ComboBoxItem { Content = "Primary monitor", Tag = MonitorPlacement.Primary });
+        var displays = MonitorPlacement.List();
+        foreach (var display in displays)
+        {
+            MonitorBox.Items.Add(new ComboBoxItem { Content = display.Label, Tag = display.Device });
+        }
+
+        string saved = Settings.PanelMonitor;
+        if (saved is not (MonitorPlacement.UnderCursor or MonitorPlacement.Primary)
+            && !displays.Any(d => d.Device.Equals(saved, StringComparison.OrdinalIgnoreCase)))
+        {
+            MonitorBox.Items.Add(new ComboBoxItem { Content = $"{saved} (not connected: using primary)", Tag = saved });
+        }
+
+        Select(MonitorBox, saved);
+    }
+
+    private void OnMonitorChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_loading && TagOf(MonitorBox) is { } choice && choice != Settings.PanelMonitor)
+        {
+            Settings.PanelMonitor = choice;
+            Settings.SaveSoon();
         }
     }
 

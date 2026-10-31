@@ -58,6 +58,16 @@
         </ComboBox>
       </ui:CardControl>
 
+      <ui:CardControl Margin="0,0,0,8" Icon="{ui:SymbolIcon Desktop24}">
+        <ui:CardControl.Header>
+          <StackPanel>
+            <ui:TextBlock Style="{StaticResource Title}" Text="Show on" />
+            <ui:TextBlock Style="{StaticResource Hint}" Text="Which screen the hotkey opens the panel on. A display that's unplugged falls back to the primary one." />
+          </StackPanel>
+        </ui:CardControl.Header>
+        <ComboBox x:Name="MonitorBox" MinWidth="150" SelectionChanged="OnMonitorChanged" />
+      </ui:CardControl>
+
       <ui:CardControl Margin="0,0,0,8" Icon="{ui:SymbolIcon ArrowAutofitWidth24}">
         <ui:CardControl.Header>
           <StackPanel>

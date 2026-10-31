@@ -28,6 +28,9 @@ internal sealed class PanelSettings
 
     public double PanelWidth { get; set; } = DefaultWidth;
 
+    /// <summary>Where the hotkey shows the panel: "Cursor", "Primary" or a display device name.</summary>
+    public string PanelMonitor { get; set; } = Native.MonitorPlacement.UnderCursor;
+
     // --- General (Settings page) ------------------------------------------------------------
 
     /// <summary>Toggle hotkey as WPF Key / ModifierKeys names; null means the default (Alt+`).</summary>
@@ -104,6 +107,11 @@ internal sealed class PanelSettings
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Take(200)
             .ToList();
+
+        if (string.IsNullOrWhiteSpace(PanelMonitor) || PanelMonitor.Length > 64)
+        {
+            PanelMonitor = Native.MonitorPlacement.UnderCursor;
+        }
 
         if (ProcessSort is { Length: > 64 })
         {
