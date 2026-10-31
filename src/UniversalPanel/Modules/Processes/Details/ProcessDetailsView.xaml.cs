@@ -53,7 +53,8 @@ internal sealed partial class ProcessDetailsView : UserControl
         _sortedOnce = false;
         ThreadsSummary.Text = "Loading…";
         LoadingRing.Set(ThreadsSpinner, true); // Until the next sampler tick brings this process's threads.
-        Tabs.SelectedIndex = 0;
+        Tabs.SelectedIndex = 0; // General
+        _ = Guard.RunAsync("Details.General", () => LoadGeneralAsync(process));
 
         _modules.Clear();
         _moduleRecords = [];
@@ -64,7 +65,7 @@ internal sealed partial class ProcessDetailsView : UserControl
 
     /// <summary>Moves keyboard focus into the page so Backspace and the grid keys reach it.</summary>
     public void FocusContent() =>
-        Dispatcher.BeginInvoke(() => ThreadsGrid.Focus(), System.Windows.Threading.DispatcherPriority.Input);
+        Dispatcher.BeginInvoke(() => Tabs.Focus(), System.Windows.Threading.DispatcherPriority.Input);
 
     /// <summary>Applies a sampler frame; ignored unless it's for the process being shown.</summary>
     public void Apply(ProcessFrame frame)

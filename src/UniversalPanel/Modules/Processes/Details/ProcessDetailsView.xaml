@@ -54,6 +54,43 @@
     </Grid>
 
     <TabControl x:Name="Tabs" Grid.Row="1" SelectionChanged="OnTabsSelectionChanged">
+      <TabItem Header="General">
+        <ScrollViewer Margin="0,12,0,0" VerticalScrollBarVisibility="Auto">
+          <ItemsControl x:Name="GeneralList" Focusable="False">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Grid Margin="0,0,0,12">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="104" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <ui:TextBlock
+                    Margin="0,1,8,0"
+                    VerticalAlignment="Top"
+                    Appearance="Secondary"
+                    FontTypography="Caption"
+                    Text="{Binding Key}"
+                  />
+                  <!--  Unstyled read-only TextBox: selectable and copyable, but looks like text.  -->
+                  <TextBox
+                    Grid.Column="1"
+                    Padding="0"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    CaretBrush="{DynamicResource TextFillColorPrimaryBrush}"
+                    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                    IsReadOnly="True"
+                    Style="{x:Null}"
+                    Text="{Binding Value, Mode=OneWay}"
+                    TextWrapping="Wrap"
+                  />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </TabItem>
+
       <TabItem Header="Threads">
         <Grid Margin="0,8,0,0">
           <Grid.RowDefinitions>
