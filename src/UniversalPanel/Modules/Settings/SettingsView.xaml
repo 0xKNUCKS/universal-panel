@@ -7,10 +7,10 @@
   PreviewKeyDown="OnPreviewKeyDown"
 >
   <UserControl.Resources>
-    <Style x:Key="Title" BasedOn="{StaticResource {x:Type ui:TextBlock}}" TargetType="ui:TextBlock">
+    <Style x:Key="Title" TargetType="ui:TextBlock">
       <Setter Property="FontTypography" Value="BodyStrong" />
     </Style>
-    <Style x:Key="Hint" BasedOn="{StaticResource {x:Type ui:TextBlock}}" TargetType="ui:TextBlock">
+    <Style x:Key="Hint" TargetType="ui:TextBlock">
       <Setter Property="Appearance" Value="Secondary" />
       <Setter Property="FontTypography" Value="Caption" />
       <Setter Property="TextWrapping" Value="Wrap" />
