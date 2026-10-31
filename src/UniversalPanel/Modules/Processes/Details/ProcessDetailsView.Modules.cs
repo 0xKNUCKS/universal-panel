@@ -101,7 +101,7 @@ internal sealed partial class ProcessDetailsView
     {
         if (SelectedModule is { } module)
         {
-            Guard.Run("Details.Modules.OpenLocation", () => ShellReveal.SelectInExplorer(module.Path));
+            Guard.Run("Details.Modules.OpenLocation", () => ClipboardText.Reveal(Host, module.Path));
         }
     }
 

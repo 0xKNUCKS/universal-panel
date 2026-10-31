@@ -48,7 +48,7 @@ internal sealed partial class ProcessesView
         if (Selected is { ImagePath: { } path })
         {
             // Explorer takes focus, so the panel hides itself as usual; that's the point of the action.
-            Guard.Run("Processes.OpenLocation", () => ShellReveal.SelectInExplorer(path));
+            Guard.Run("Processes.OpenLocation", () => ClipboardText.Reveal(Host, path));
         }
     }
 
