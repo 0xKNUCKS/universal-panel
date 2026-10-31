@@ -16,9 +16,9 @@ internal sealed partial class ProcessesView
     private void OnGridRightButtonDown(object sender, MouseButtonEventArgs e)
     {
         // Select the row under the cursor so the menu acts on what was right-clicked.
-        if (ItemsControl.ContainerFromElement(Grid, (DependencyObject)e.OriginalSource) is DataGridRow row)
+        if (ItemsControl.ContainerFromElement(Grid, (DependencyObject)e.OriginalSource) is ListBoxItem { DataContext: ProcessRow row })
         {
-            Grid.SelectedItem = row.Item;
+            Grid.SelectedItem = row;
         }
     }
 

@@ -44,8 +44,8 @@ internal sealed partial class ProcessesView
 
     private void OnGridDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        // Only a double-click on a row, not on a header or the scrollbar.
-        if (ItemsControl.ContainerFromElement(Grid, (DependencyObject)e.OriginalSource) is DataGridRow { Item: ProcessRow row })
+        // Only a double-click on a row, not on the scrollbar.
+        if (ItemsControl.ContainerFromElement(Grid, (DependencyObject)e.OriginalSource) is ListBoxItem { DataContext: ProcessRow row })
         {
             OpenDetails(row);
         }

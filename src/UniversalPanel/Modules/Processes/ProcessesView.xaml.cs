@@ -33,7 +33,11 @@ internal sealed partial class ProcessesView : UserControl
         RestoreViewSettings();
         ApplyViewMode(); // Tree or flat per settings (ProcessesView.Tree.cs).
 
+        ProcessRowView.SetColumns(Grid, _columns); // inherited by every row
+        AddHandler(ProcessRowView.ChevronClickEvent, new RoutedEventHandler(OnChevronClick));
         Grid.ItemsSource = _view;
+        // Keep the header over the row content (padding, scrollbar coming and going).
+        Grid.LayoutUpdated += (_, _) => AlignHeader();
         BuildPriorityMenu();
         LoadingRing.Set(ListSpinner, true); // Until the first sample arrives.
 
@@ -156,7 +160,7 @@ internal sealed partial class ProcessesView : UserControl
 
     private void OnRowToolTipOpening(object sender, ToolTipEventArgs e)
     {
-        if (sender is DataGridRow { Item: ProcessRow row } container)
+        if (sender is ListBoxItem { DataContext: ProcessRow row } container)
         {
             container.ToolTip = row.Details;
         }

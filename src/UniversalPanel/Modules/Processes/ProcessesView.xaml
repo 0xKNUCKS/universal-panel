@@ -3,8 +3,40 @@
   x:ClassModifier="internal"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:local="clr-namespace:UniversalPanel.Modules.Processes"
   xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
 >
+  <UserControl.Resources>
+    <Style x:Key="HeaderCell" TargetType="Border">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Padding" Value="4,0" />
+      <Setter Property="Cursor" Value="Hand" />
+      <EventSetter Event="MouseLeftButtonUp" Handler="OnHeaderClick" />
+      <Setter Property="TextElement.Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+      <Setter Property="TextElement.FontSize" Value="12" />
+      <Style.Resources>
+        <Style TargetType="TextBlock">
+          <Setter Property="VerticalAlignment" Value="Center" />
+          <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+      </Style.Resources>
+    </Style>
+    <Style x:Key="HeaderSplitter" TargetType="GridSplitter">
+      <Setter Property="Width" Value="5" />
+      <Setter Property="Margin" Value="-2,6,0,6" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+      <Setter Property="ResizeBehavior" Value="PreviousAndCurrent" />
+      <Setter Property="ResizeDirection" Value="Columns" />
+      <Setter Property="Background" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+      <Setter Property="Focusable" Value="False" />
+    </Style>
+    <Style x:Key="Cell" TargetType="TextBlock">
+      <Setter Property="Padding" Value="4,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+  </UserControl.Resources>
+
   <Grid>
     <!--  List page; the details page replaces it (ProcessesView.Details.cs)  -->
     <Grid x:Name="ListPage">
@@ -101,167 +133,127 @@
         </ui:Button>
       </Grid>
 
-      <ui:DataGrid
-        x:Name="Grid"
-        Grid.Row="1"
-        Margin="0,8,0,0"
-        AutoGenerateColumns="False"
-        CanUserAddRows="False"
-        CanUserDeleteRows="False"
-        CanUserReorderColumns="False"
-        CanUserResizeRows="False"
-        ContextMenuOpening="OnGridContextMenuOpening"
-        EnableRowVirtualization="True"
-        FontSize="13"
-        GridLinesVisibility="None"
-        RowHeight="28"
-        HeadersVisibility="Column"
-        IsReadOnly="True"
-        MouseDoubleClick="OnGridDoubleClick"
-        PreviewKeyDown="OnGridKeyDown"
-        PreviewMouseRightButtonDown="OnGridRightButtonDown"
-        SelectionMode="Single"
-        SelectionUnit="FullRow"
-        Sorting="OnSorting"
-        VirtualizingPanel.IsVirtualizing="True"
-        VirtualizingPanel.VirtualizationMode="Recycling"
-      >
-        <ui:DataGrid.TextColumnElementStyle>
-          <!--  WPF-UI gives every cell TextBlock a Copy/Cut/Paste menu, which would shadow the row menu.  -->
-          <Style BasedOn="{StaticResource DefaultDataGridTextElementStyle}" TargetType="TextBlock">
-            <Setter Property="ContextMenu" Value="{x:Null}" />
-            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-          </Style>
-        </ui:DataGrid.TextColumnElementStyle>
-        <ui:DataGrid.ContextMenu>
-          <ContextMenu>
-            <MenuItem Click="OnDetails" FontWeight="SemiBold" Header="Details" InputGestureText="Enter">
-              <MenuItem.Icon>
-                <ui:SymbolIcon Symbol="Info24" />
-              </MenuItem.Icon>
-            </MenuItem>
-            <Separator />
-            <MenuItem Click="OnEndProcess" Header="End process" InputGestureText="Del">
-              <MenuItem.Icon>
-                <ui:SymbolIcon Symbol="DismissCircle24" />
-              </MenuItem.Icon>
-            </MenuItem>
-            <Separator />
-            <MenuItem Click="OnSuspend" Header="Suspend">
-              <MenuItem.Icon>
-                <ui:SymbolIcon Symbol="Pause24" />
-              </MenuItem.Icon>
-            </MenuItem>
-            <MenuItem Click="OnResume" Header="Resume">
-              <MenuItem.Icon>
-                <ui:SymbolIcon Symbol="Play24" />
-              </MenuItem.Icon>
-            </MenuItem>
-            <Separator />
-            <MenuItem x:Name="OpenLocationItem" Click="OnOpenLocation" Header="Open file location">
-              <MenuItem.Icon>
-                <ui:SymbolIcon Symbol="FolderOpen24" />
-              </MenuItem.Icon>
-            </MenuItem>
-            <MenuItem x:Name="CopyPathItem" Click="OnCopyPath" Header="Copy path">
-              <MenuItem.Icon>
-                <ui:SymbolIcon Symbol="Copy24" />
-              </MenuItem.Icon>
-            </MenuItem>
-            <MenuItem Header="Create dump">
-              <MenuItem.Icon>
-                <ui:SymbolIcon Symbol="Save24" />
-              </MenuItem.Icon>
-              <MenuItem Click="OnFullDump" Header="Full dump" ToolTip="Whole memory, handles and threads; for WinDbg / IDA" />
-              <MenuItem Click="OnMiniDump" Header="Minidump" ToolTip="Threads, modules and data segments only; small" />
-            </MenuItem>
-            <!--  Items are added in ProcessesView.Priority.cs  -->
-            <MenuItem x:Name="PriorityMenu" Header="Priority">
-              <MenuItem.Icon>
-                <ui:SymbolIcon Symbol="TopSpeed24" />
-              </MenuItem.Icon>
-            </MenuItem>
-          </ContextMenu>
-        </ui:DataGrid.ContextMenu>
-        <ui:DataGrid.RowStyle>
-          <!--  WPF-UI keys its row style; basing on the implicit type style would pick WPF's stock white rows.  -->
-          <Style BasedOn="{StaticResource DefaultDataGridRowStyle}" TargetType="DataGridRow">
-            <!--  Non-null placeholder so ToolTipOpening fires; the text is filled in on open.  -->
-            <Setter Property="ToolTip" Value="" />
-            <EventSetter Event="ToolTipOpening" Handler="OnRowToolTipOpening" />
-            <Setter Property="ToolTipService.InitialShowDelay" Value="700" />
-          </Style>
-        </ui:DataGrid.RowStyle>
-        <ui:DataGrid.Columns>
-          <!--  Name with tree indent and expander (ProcessesView.Tree.cs)  -->
-          <DataGridTemplateColumn Width="*" Header="Name" SortMemberPath="Name">
-            <DataGridTemplateColumn.CellTemplate>
-              <DataTemplate>
-                <!--  Grid, not a horizontal StackPanel: a StackPanel gives the text unlimited width,
-                      so it could never be trimmed with an ellipsis.  -->
-                <Grid Margin="{Binding Indent}" VerticalAlignment="Center">
-                  <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                  </Grid.ColumnDefinitions>
-                  <!--  A plain hit area, not a ui:Button: every visible row creates one, and a
-                        button's template made rebuilding the visible rows several times slower.  -->
-                  <Border
-                    Grid.Column="0"
-                    Width="18"
-                    Height="18"
-                    Margin="0,0,2,0"
-                    Background="Transparent"
-                    MouseLeftButtonDown="OnExpanderMouseDown"
-                    Visibility="{Binding ExpanderVisibility}"
-                  >
-                    <ui:SymbolIcon
-                      HorizontalAlignment="Center"
-                      VerticalAlignment="Center"
-                      FontSize="11"
-                      Symbol="{Binding ExpanderSymbol}"
-                    />
-                  </Border>
-                  <Image
-                    Grid.Column="1"
-                    Width="16"
-                    Height="16"
-                    Margin="0,0,6,0"
-                    VerticalAlignment="Center"
-                    RenderOptions.BitmapScalingMode="HighQuality"
-                    Source="{Binding Icon}"
-                  />
-                  <TextBlock
-                    Grid.Column="2"
-                    VerticalAlignment="Center"
-                    Text="{Binding Name}"
-                    TextTrimming="CharacterEllipsis"
-                  />
-                </Grid>
-              </DataTemplate>
-            </DataGridTemplateColumn.CellTemplate>
-          </DataGridTemplateColumn>
-          <DataGridTextColumn
-            Width="72"
-            Binding="{Binding Pid}"
-            Header="PID"
-            SortMemberPath="Pid"
-          />
-          <DataGridTextColumn
-            Width="56"
-            Binding="{Binding CpuText}"
-            Header="CPU"
-            SortMemberPath="Cpu"
-          />
-          <DataGridTextColumn
-            Width="86"
-            Binding="{Binding MemoryText}"
-            Header="Memory"
-            SortMemberPath="PrivateBytes"
-          />
-        </ui:DataGrid.Columns>
-      </ui:DataGrid>
+      <!--  A virtualized ListBox of self-drawing rows, not a DataGrid: a DataGrid row costs ~4-8 ms
+            to build, so a collapse that brings ~30 rows into view took ~250 ms. System Informer's
+            TreeNew keeps a flat list of visible nodes and paints only the visible rows
+            (phlib/treenew.c: PhTnpRestructureNodes, PhTnpPaint); this is the WPF equivalent.  -->
+      <Grid Grid.Row="1" Margin="0,8,0,0">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!--  Column header: click sorts, the splitters resize (widths are saved).  -->
+        <Grid x:Name="HeaderRow" Height="30" Margin="{Binding HeaderMargin, RelativeSource={RelativeSource AncestorType=UserControl}}">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" MinWidth="80" />
+            <ColumnDefinition MinWidth="30" Width="{Binding PidWidth, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}" />
+            <ColumnDefinition MinWidth="30" Width="{Binding CpuWidth, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}" />
+            <ColumnDefinition MinWidth="30" Width="{Binding MemoryWidth, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}" />
+          </Grid.ColumnDefinitions>
+          <Border Grid.Column="0" Style="{StaticResource HeaderCell}" Tag="Name">
+            <TextBlock x:Name="NameHeader" Text="Name" />
+          </Border>
+          <Border Grid.Column="1" Style="{StaticResource HeaderCell}" Tag="Pid">
+            <TextBlock x:Name="PidHeader" Text="PID" />
+          </Border>
+          <Border Grid.Column="2" Style="{StaticResource HeaderCell}" Tag="Cpu">
+            <TextBlock x:Name="CpuHeader" Text="CPU" />
+          </Border>
+          <Border Grid.Column="3" Style="{StaticResource HeaderCell}" Tag="PrivateBytes">
+            <TextBlock x:Name="MemoryHeader" Text="Memory" />
+          </Border>
+          <GridSplitter Grid.Column="1" Style="{StaticResource HeaderSplitter}" />
+          <GridSplitter Grid.Column="2" Style="{StaticResource HeaderSplitter}" />
+          <GridSplitter Grid.Column="3" Style="{StaticResource HeaderSplitter}" />
+        </Grid>
+
+        <ListBox
+          x:Name="Grid"
+          Grid.Row="1"
+          Background="Transparent"
+          BorderThickness="0"
+          ContextMenuOpening="OnGridContextMenuOpening"
+          FontSize="13"
+          HorizontalContentAlignment="Stretch"
+          MouseDoubleClick="OnGridDoubleClick"
+          PreviewKeyDown="OnGridKeyDown"
+          PreviewMouseRightButtonDown="OnGridRightButtonDown"
+          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+          SelectionMode="Single"
+          VirtualizingPanel.IsVirtualizing="True"
+          VirtualizingPanel.VirtualizationMode="Recycling"
+        >
+            <ListBox.ContextMenu>
+              <ContextMenu>
+                <MenuItem Click="OnDetails" FontWeight="SemiBold" Header="Details" InputGestureText="Enter">
+                  <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="Info24" />
+                  </MenuItem.Icon>
+                </MenuItem>
+                <Separator />
+                <MenuItem Click="OnEndProcess" Header="End process" InputGestureText="Del">
+                  <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="DismissCircle24" />
+                  </MenuItem.Icon>
+                </MenuItem>
+                <Separator />
+                <MenuItem Click="OnSuspend" Header="Suspend">
+                  <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="Pause24" />
+                  </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Click="OnResume" Header="Resume">
+                  <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="Play24" />
+                  </MenuItem.Icon>
+                </MenuItem>
+                <Separator />
+                <MenuItem x:Name="OpenLocationItem" Click="OnOpenLocation" Header="Open file location">
+                  <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="FolderOpen24" />
+                  </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem x:Name="CopyPathItem" Click="OnCopyPath" Header="Copy path">
+                  <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="Copy24" />
+                  </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Create dump">
+                  <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="Save24" />
+                  </MenuItem.Icon>
+                  <MenuItem Click="OnFullDump" Header="Full dump" ToolTip="Whole memory, handles and threads; for WinDbg / IDA" />
+                  <MenuItem Click="OnMiniDump" Header="Minidump" ToolTip="Threads, modules and data segments only; small" />
+                </MenuItem>
+                <!--  Items are added in ProcessesView.Priority.cs  -->
+                <MenuItem x:Name="PriorityMenu" Header="Priority">
+                  <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="TopSpeed24" />
+                  </MenuItem.Icon>
+                </MenuItem>
+              </ContextMenu>
+            </ListBox.ContextMenu>
+          <ListBox.ItemContainerStyle>
+            <Style BasedOn="{StaticResource {x:Type ListBoxItem}}" TargetType="ListBoxItem">
+              <Setter Property="Height" Value="28" />
+              <Setter Property="MinHeight" Value="0" />
+              <Setter Property="Margin" Value="0" />
+              <Setter Property="Padding" Value="{Binding RowPadding, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+              <!--  Non-null placeholder so ToolTipOpening fires; the text is filled in on open.  -->
+              <Setter Property="ToolTip" Value="" />
+              <EventSetter Event="ToolTipOpening" Handler="OnRowToolTipOpening" />
+              <Setter Property="ToolTipService.InitialShowDelay" Value="700" />
+            </Style>
+          </ListBox.ItemContainerStyle>
+          <ListBox.ItemTemplate>
+            <!--  One self-drawing element per row (ProcessRowView.cs), like TreeNew's painted rows.  -->
+            <DataTemplate>
+              <local:ProcessRowView />
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
 
       <!--  Holds a ProgressRing until the first sample fills the list (see LoadingRing).  -->
       <ContentControl

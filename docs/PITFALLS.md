@@ -77,3 +77,9 @@ Known traps for this kind of app. Check the relevant section before implementing
   (same key as itself) resolves lazily, finds itself instead of WPF-UI's style and silently falls
   back to the default light control. Extend WPF-UI styles in code from the found `Style` object
   (see `App.ExtendToolTipStyle`), and check against the real compiled App, not `XamlReader.Parse`.
+- WPF `DataGrid` rows are expensive: ~4-8 ms each to build here, even with one bare text column
+  and no styling, so anything that re-shows ~30 rows (a tree collapse, a refresh) costs ~250 ms.
+  For big live lists use a virtualized `ListBox` with rows that draw themselves (`ProcessRowView`).
+- Pausing `IsLiveSorting` while live-filtered properties change also stops the view from telling
+  the control: the view drops the rows, the list keeps showing them. Check the control's own
+  `Items.Count`, not only the view's.

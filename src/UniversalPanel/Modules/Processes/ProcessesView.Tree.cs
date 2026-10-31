@@ -7,7 +7,7 @@ using Wpf.Ui.Controls;
 
 namespace UniversalPanel.Modules.Processes;
 
-// Parent/child tree. The grid stays a flat DataGrid: in tree mode rows are sorted by their
+// Parent/child tree. The list stays flat (like System Informer's FlatList): in tree mode rows are sorted by their
 // position in the flattened tree (TreeOrder) and rows under a collapsed parent are filtered out.
 // Header clicks sort siblings within each parent, as in System Informer; a third click returns to
 // creation order. Searching shows a flat list of matches.
@@ -76,9 +76,9 @@ internal sealed partial class ProcessesView
         Relayout();
     }
 
-    // Live filtering hides / shows rows one by one: ~2.3 ms each, so cheap for a small subtree
-    // but ~520 ms for wininit's 224 rows. Above this, one deferred refresh is cheaper: it costs
-    // ~250 ms whatever the subtree size (rebuilding the ~30 visible DataGrid rows, ~4-8 ms each).
+    // Live filtering hides / shows rows one by one, so it's cheapest for a small subtree. Above
+    // this, one deferred refresh is cheaper: it rebuilds just the ~30 visible rows, and with the
+    // light ListBox rows that's ~30 ms (it was ~250 ms with DataGrid rows).
     private const int RefreshAboveRows = 60;
 
     /// <summary>Expand / collapse re-layout: live filtering for small subtrees, one refresh for big ones.</summary>
@@ -123,12 +123,9 @@ internal sealed partial class ProcessesView
         return result != 0 ? result : a.Pid.CompareTo(b.Pid);
     }
 
-    private void OnSorting(object sender, DataGridSortingEventArgs e)
+    /// <summary>Header click: ascending -> descending -> back to natural order, in both modes.</summary>
+    private void ApplySortClick(string path)
     {
-        // We own sorting in both modes: ascending -> descending -> back to natural order.
-        e.Handled = true;
-        var path = e.Column.SortMemberPath;
-
         if (path != _sortPath)
         {
             _sortPath = path;
@@ -143,12 +140,7 @@ internal sealed partial class ProcessesView
             _sortPath = null;
         }
 
-        foreach (var column in Grid.Columns)
-        {
-            column.SortDirection = null;
-        }
-
-        e.Column.SortDirection = _sortPath is null ? null : _sortDirection;
+        UpdateSortGlyphs();
         ApplyViewMode();
 
         Settings.ProcessSort = _sortPath;
@@ -156,9 +148,9 @@ internal sealed partial class ProcessesView
         Settings.SaveSoon();
     }
 
-    private void OnExpanderMouseDown(object sender, MouseButtonEventArgs e)
+    private void OnChevronClick(object sender, RoutedEventArgs e)
     {
-        if (sender is FrameworkElement { DataContext: ProcessRow row })
+        if (e.OriginalSource is FrameworkElement { DataContext: ProcessRow row })
         {
             SetExpanded(row, !row.IsExpanded);
             e.Handled = true;
@@ -242,31 +234,13 @@ internal sealed partial class ProcessesView
         _treeEnabled = Settings.ProcessTree;
         UpdateTreeToggle();
 
-        var sortColumn = Grid.Columns.FirstOrDefault(c => c.SortMemberPath == Settings.ProcessSort);
-        if (sortColumn is not null)
+        if (Settings.ProcessSort is nameof(ProcessRow.Name) or nameof(ProcessRow.Pid) or nameof(ProcessRow.Cpu) or nameof(ProcessRow.PrivateBytes))
         {
-            _sortPath = sortColumn.SortMemberPath;
+            _sortPath = Settings.ProcessSort;
             _sortDirection = Settings.ProcessSortDescending ? ListSortDirection.Descending : ListSortDirection.Ascending;
-            sortColumn.SortDirection = _sortDirection;
         }
 
-        var widthProperty = DependencyPropertyDescriptor.FromProperty(DataGridColumn.WidthProperty, typeof(DataGridColumn));
-        foreach (var column in Grid.Columns.Where(c => !c.Width.IsStar))
-        {
-            var path = column.SortMemberPath;
-            if (Settings.ProcessColumnWidths.TryGetValue(path, out var width))
-            {
-                column.Width = new DataGridLength(width);
-            }
-
-            widthProperty.AddValueChanged(column, (_, _) =>
-            {
-                if (column.Width.IsAbsolute)
-                {
-                    Settings.ProcessColumnWidths[path] = column.Width.Value;
-                    Settings.SaveSoon();
-                }
-            });
-        }
+        UpdateSortGlyphs();
+        RestoreColumnWidths();
     }
 }
