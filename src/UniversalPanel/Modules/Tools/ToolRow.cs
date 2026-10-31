@@ -23,6 +23,8 @@ internal sealed class ToolRow(string path) : INotifyPropertyChanged
 
     public string Name => Identity.Name;
 
+    public string Version => Exists ? Identity.Version ?? string.Empty : "Missing";
+
     public string Subtitle => !Exists
         ? "Missing: " + Path
         : string.Join(" · ", new[] { Identity.Version, Identity.Publisher }.Where(s => !string.IsNullOrEmpty(s)).DefaultIfEmpty(System.IO.Path.GetFileName(Path)));

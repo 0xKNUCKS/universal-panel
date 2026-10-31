@@ -5,114 +5,291 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
 >
-  <Grid>
-    <Grid.RowDefinitions>
-      <RowDefinition Height="Auto" />
-      <RowDefinition Height="*" />
-    </Grid.RowDefinitions>
-
-    <StackPanel Grid.Row="0" Margin="0,0,0,8" Orientation="Horizontal">
-      <ui:Button
-        Padding="8,4"
-        Appearance="Secondary"
-        Click="OnAddClick"
-        Content="Add"
-        Icon="{ui:SymbolIcon Add24}"
-        ToolTip="Add a program or script"
-      />
-      <ui:Button
-        x:Name="FindButton"
-        Margin="8,0,0,0"
-        Padding="8,4"
-        Appearance="Secondary"
-        Click="OnFindClick"
-        Content="Find installed"
-        Icon="{ui:SymbolIcon Search24}"
-        ToolTip="Look for known tools (IDA, Ghidra, x64dbg, DIE, ...) in Program Files, Documents, Desktop and Downloads"
-      />
-    </StackPanel>
-
-    <ListBox
-      x:Name="ToolList"
-      Grid.Row="1"
-      HorizontalContentAlignment="Stretch"
-      KeyDown="OnListKeyDown"
-      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-    >
-      <ListBox.ItemContainerStyle>
-        <Style BasedOn="{StaticResource {x:Type ListBoxItem}}" TargetType="ListBoxItem">
-          <EventSetter Event="MouseLeftButtonUp" Handler="OnItemClick" />
-          <Setter Property="ToolTip" Value="{Binding ToolTipText}" />
-        </Style>
-      </ListBox.ItemContainerStyle>
-      <ListBox.ContextMenu>
-        <ContextMenu>
-          <MenuItem Click="OnOpen" Header="Open" />
-          <MenuItem Click="OnRunAsAdmin" Header="Run as administrator" />
-          <Separator />
-          <MenuItem Click="OnOpenLocation" Header="Open file location" />
-          <MenuItem Click="OnCopyPath" Header="Copy path" />
-          <Separator />
-          <MenuItem Click="OnMoveUp" Header="Move up" />
-          <MenuItem Click="OnMoveDown" Header="Move down" />
-          <MenuItem Click="OnRemove" Header="Remove" />
-        </ContextMenu>
-      </ListBox.ContextMenu>
-      <ListBox.ItemTemplate>
-        <DataTemplate>
-          <Grid Margin="0,4" Opacity="{Binding Opacity}">
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="Auto" />
-              <ColumnDefinition Width="*" />
-              <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <Image
-              Width="32"
-              Height="32"
-              Margin="0,0,12,0"
-              VerticalAlignment="Center"
-              Source="{Binding Icon}"
-            />
-            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-              <ui:TextBlock FontTypography="BodyStrong" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-              <ui:TextBlock
-                Appearance="Secondary"
-                FontTypography="Caption"
-                Text="{Binding Subtitle}"
-                TextTrimming="CharacterEllipsis"
-              />
-            </StackPanel>
-            <StackPanel
-              Grid.Column="2"
-              Margin="8,0,0,0"
-              VerticalAlignment="Center"
-              Orientation="Horizontal"
-              Visibility="{Binding BadgeVisibility}"
+  <UserControl.Resources>
+    <!-- Selection is an accent outline, hover a faint wash; no filled highlight. -->
+    <Style x:Key="OutlineItem" TargetType="ListBoxItem">
+      <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+      <Setter Property="Padding" Value="8" />
+      <Setter Property="Margin" Value="2" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ListBoxItem">
+            <Border
+              x:Name="Frame"
+              Padding="{TemplateBinding Padding}"
+              Background="Transparent"
+              BorderBrush="Transparent"
+              BorderThickness="1.5"
+              CornerRadius="6"
             >
-              <ui:SymbolIcon FontSize="16" Foreground="{Binding BadgeBrush}" Symbol="{Binding BadgeSymbol}" />
-              <ui:TextBlock
-                Margin="4,0,0,0"
-                VerticalAlignment="Center"
-                Appearance="Secondary"
-                FontTypography="Caption"
-                Text="{Binding BadgeText}"
-              />
-            </StackPanel>
-          </Grid>
-        </DataTemplate>
-      </ListBox.ItemTemplate>
-    </ListBox>
+              <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+              </Trigger>
+              <Trigger Property="IsSelected" Value="True">
+                <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
 
-    <ui:TextBlock
-      x:Name="EmptyHint"
-      Grid.Row="1"
-      Margin="8,24"
-      HorizontalAlignment="Center"
-      Appearance="Secondary"
-      Text="No tools yet. Add one, or let the panel find the ones you have installed."
-      TextAlignment="Center"
-      TextWrapping="Wrap"
-    />
-    <ContentControl x:Name="Spinner" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" />
+    <!-- Plain list box: no chrome of its own, the items draw everything. -->
+    <Style x:Key="BareList" TargetType="ListBox">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ListBox">
+            <ScrollViewer Focusable="False" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+              <ItemsPresenter />
+            </ScrollViewer>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </UserControl.Resources>
+
+  <Grid>
+    <!-- Main page: the tiles. -->
+    <Grid x:Name="MainPage">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+
+      <StackPanel Grid.Row="0" Margin="0,0,0,8" Orientation="Horizontal">
+        <ui:Button
+          Padding="8,4"
+          Appearance="Secondary"
+          Click="OnAddClick"
+          Content="Add"
+          Icon="{ui:SymbolIcon Add24}"
+          ToolTip="Add a program or script"
+        />
+        <ui:Button
+          x:Name="FindButton"
+          Margin="8,0,0,0"
+          Padding="8,4"
+          Appearance="Secondary"
+          Click="OnFindClick"
+          Content="Find installed"
+          Icon="{ui:SymbolIcon Search24}"
+          ToolTip="Look for known tools (IDA, Ghidra, x64dbg, DIE, ...) in Program Files, Documents, Desktop and Downloads, then pick which to add"
+        />
+      </StackPanel>
+
+      <ListBox
+        x:Name="ToolList"
+        Grid.Row="1"
+        KeyDown="OnListKeyDown"
+        SelectionMode="Single"
+        Style="{StaticResource BareList}"
+      >
+        <ListBox.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel Orientation="Horizontal" />
+          </ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+        <ListBox.ItemContainerStyle>
+          <Style BasedOn="{StaticResource OutlineItem}" TargetType="ListBoxItem">
+            <EventSetter Event="MouseDoubleClick" Handler="OnItemDoubleClick" />
+            <Setter Property="ToolTip" Value="{Binding ToolTipText}" />
+          </Style>
+        </ListBox.ItemContainerStyle>
+        <ListBox.ContextMenu>
+          <ContextMenu>
+            <MenuItem Click="OnOpen" Header="Open" />
+            <MenuItem Click="OnRunAsAdmin" Header="Run as administrator" />
+            <Separator />
+            <MenuItem Click="OnOpenLocation" Header="Open file location" />
+            <MenuItem Click="OnCopyPath" Header="Copy path" />
+            <Separator />
+            <MenuItem Click="OnMoveUp" Header="Move earlier" />
+            <MenuItem Click="OnMoveDown" Header="Move later" />
+            <MenuItem Click="OnRemove" Header="Remove" />
+          </ContextMenu>
+        </ListBox.ContextMenu>
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <Grid Width="88" Height="112" Opacity="{Binding Opacity}">
+              <StackPanel VerticalAlignment="Top">
+                <Image
+                  Width="48"
+                  Height="48"
+                  Margin="0,4,0,6"
+                  HorizontalAlignment="Center"
+                  Source="{Binding Icon}"
+                />
+                <!-- Up to two lines, so names like "System Informer" fit. -->
+                <ui:TextBlock
+                  MaxHeight="36"
+                  HorizontalAlignment="Center"
+                  FontTypography="BodyStrong"
+                  LineHeight="18"
+                  LineStackingStrategy="BlockLineHeight"
+                  Text="{Binding Name}"
+                  TextAlignment="Center"
+                  TextTrimming="CharacterEllipsis"
+                  TextWrapping="Wrap"
+                />
+                <ui:TextBlock
+                  HorizontalAlignment="Center"
+                  Appearance="Secondary"
+                  FontTypography="Caption"
+                  Text="{Binding Version}"
+                  TextTrimming="CharacterEllipsis"
+                />
+              </StackPanel>
+              <ui:SymbolIcon
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                FontSize="16"
+                Foreground="{Binding BadgeBrush}"
+                Symbol="{Binding BadgeSymbol}"
+                Visibility="{Binding BadgeVisibility}"
+              />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+
+      <ui:TextBlock
+        x:Name="EmptyHint"
+        Grid.Row="1"
+        Margin="8,24"
+        HorizontalAlignment="Center"
+        Appearance="Secondary"
+        Text="No tools yet. Add one, or let the panel find the ones you have installed."
+        TextAlignment="Center"
+        TextWrapping="Wrap"
+      />
+      <ContentControl x:Name="Spinner" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" />
+    </Grid>
+
+    <!-- Find page: what was found, pick what to add. -->
+    <Grid x:Name="FindPage" Visibility="Collapsed">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
+      <StackPanel Grid.Row="0" Margin="0,0,0,8" Orientation="Horizontal">
+        <ui:Button
+          Padding="6"
+          Appearance="Transparent"
+          Click="OnFindBack"
+          Icon="{ui:SymbolIcon ArrowLeft24}"
+          ToolTip="Back"
+        />
+        <ui:TextBlock
+          x:Name="FindTitle"
+          Margin="8,0,0,0"
+          VerticalAlignment="Center"
+          FontTypography="BodyStrong"
+        />
+      </StackPanel>
+
+      <ListBox
+        x:Name="FoundList"
+        Grid.Row="1"
+        SelectionMode="Single"
+        Style="{StaticResource BareList}"
+      >
+        <ListBox.ItemContainerStyle>
+          <Style BasedOn="{StaticResource OutlineItem}" TargetType="ListBoxItem">
+            <EventSetter Event="MouseLeftButtonUp" Handler="OnFoundClick" />
+            <Setter Property="ToolTip" Value="{Binding Tool.ToolTipText}" />
+          </Style>
+        </ListBox.ItemContainerStyle>
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <Grid Opacity="{Binding Tool.Opacity}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <CheckBox
+                MinWidth="0"
+                Margin="0,0,8,0"
+                VerticalAlignment="Center"
+                IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                IsEnabled="{Binding CanAdd}"
+              />
+              <Image
+                Grid.Column="1"
+                Width="32"
+                Height="32"
+                Margin="0,0,12,0"
+                VerticalAlignment="Center"
+                Source="{Binding Tool.Icon}"
+              />
+              <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                <ui:TextBlock FontTypography="BodyStrong" Text="{Binding Tool.Name}" TextTrimming="CharacterEllipsis" />
+                <ui:TextBlock
+                  Appearance="Secondary"
+                  FontTypography="Caption"
+                  Text="{Binding Tool.Subtitle}"
+                  TextTrimming="CharacterEllipsis"
+                />
+                <ui:TextBlock
+                  Appearance="Secondary"
+                  FontTypography="Caption"
+                  Text="{Binding Tool.Path}"
+                  TextTrimming="CharacterEllipsis"
+                />
+              </StackPanel>
+              <StackPanel
+                Grid.Column="3"
+                Margin="8,0,0,0"
+                VerticalAlignment="Center"
+                Orientation="Horizontal"
+              >
+                <ui:TextBlock
+                  Margin="0,0,8,0"
+                  VerticalAlignment="Center"
+                  Appearance="Secondary"
+                  FontTypography="Caption"
+                  Text="{Binding Note}"
+                />
+                <StackPanel Orientation="Horizontal" Visibility="{Binding Tool.BadgeVisibility}">
+                  <ui:SymbolIcon FontSize="16" Foreground="{Binding Tool.BadgeBrush}" Symbol="{Binding Tool.BadgeSymbol}" />
+                  <ui:TextBlock
+                    Margin="4,0,0,0"
+                    VerticalAlignment="Center"
+                    Appearance="Secondary"
+                    FontTypography="Caption"
+                    Text="{Binding Tool.BadgeText}"
+                  />
+                </StackPanel>
+              </StackPanel>
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+
+      <StackPanel
+        Grid.Row="2"
+        Margin="0,8,0,0"
+        HorizontalAlignment="Right"
+        Orientation="Horizontal"
+      >
+        <ui:Button Appearance="Secondary" Click="OnFindBack" Content="Cancel" />
+        <ui:Button
+          x:Name="AddFoundButton"
+          Margin="8,0,0,0"
+          Appearance="Primary"
+          Click="OnAddFound"
+          Content="Add"
+        />
+      </StackPanel>
+    </Grid>
   </Grid>
 </UserControl>

@@ -73,7 +73,7 @@ internal static class ToolCatalog
 
             if (known.VersionFromBuildDate && PeHeaders.Read(path)?.LinkTime is { } built)
             {
-                version = $"build {built:yyyy-MM-dd}";
+                version = $"{built:yyyy-MM-dd}"; // snapshots all report 0.0.2.5; the build date is the real version
             }
 
             // Sysinternals tools are one entry per tool; keep their own name.

@@ -11,7 +11,7 @@ using Wpf.Ui.Controls;
 
 namespace UniversalPanel.Modules.Tools;
 
-// Launcher: click opens a tool with the user's normal rights (even when the panel is elevated);
+// Launcher: double-click opens a tool with the user's normal rights (even when the panel is elevated);
 // "Run as administrator" is per click and confirms first when no UAC prompt would appear.
 internal sealed partial class ToolsView : UserControl
 {
@@ -46,10 +46,12 @@ internal sealed partial class ToolsView : UserControl
 
     // ---- launching ---------------------------------------------------------------------------
 
-    private void OnItemClick(object sender, MouseButtonEventArgs e)
+    // One click selects (ListBox), two open.
+    private void OnItemDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (sender is ListBoxItem { DataContext: ToolRow row })
+        if (e.ChangedButton == MouseButton.Left && sender is ListBoxItem { DataContext: ToolRow row })
         {
+            e.Handled = true;
             _ = Guard.RunAsync("Tools.Open", () => OpenAsync(row));
         }
     }
@@ -171,6 +173,10 @@ internal sealed partial class ToolsView : UserControl
         }
     }
 
+    // ---- find installed: scan, then the user picks what to add ------------------------------
+
+    private readonly ObservableCollection<FoundTool> _found = [];
+
     private async void OnFindClick(object sender, RoutedEventArgs e)
     {
         FindButton.IsEnabled = false;
@@ -179,12 +185,28 @@ internal sealed partial class ToolsView : UserControl
         {
             await Guard.RunAsync("Tools.Find", async () =>
             {
-                var found = await Task.Run(() => ToolFinder.Find(CancellationToken.None));
-                int added = Add(found);
-                _host.ShowNotice(
-                    added > 0 ? $"Added {added} tool{(added == 1 ? string.Empty : "s")}" : "No new tools found",
-                    added > 0 ? string.Empty : "Looked in Program Files, Documents, Desktop and Downloads. Use Add for anything else.",
-                    InfoBarSeverity.Informational);
+                var paths = await Task.Run(() => ToolFinder.Find(CancellationToken.None));
+                if (paths.Count == 0)
+                {
+                    _host.ShowNotice("No tools found", "Looked in Program Files, Documents, Desktop and Downloads. Use Add for anything else.", InfoBarSeverity.Informational);
+                    return;
+                }
+
+                _found.Clear();
+                foreach (var path in paths)
+                {
+                    bool listed = _rows.Any(r => r.Path.Equals(path, StringComparison.OrdinalIgnoreCase));
+                    var found = new FoundTool(new ToolRow(path), listed);
+                    found.PropertyChanged += (_, _) => UpdateAddFound();
+                    _found.Add(found);
+                }
+
+                FoundList.ItemsSource = _found;
+                FindTitle.Text = $"Found {paths.Count} tool{(paths.Count == 1 ? string.Empty : "s")}";
+                UpdateAddFound();
+                MainPage.Visibility = Visibility.Collapsed;
+                FindPage.Visibility = Visibility.Visible;
+                await InspectAsync(_found.Select(f => f.Tool).ToList());
             });
         }
         finally
@@ -192,6 +214,52 @@ internal sealed partial class ToolsView : UserControl
             LoadingRing.Set(Spinner, false);
             FindButton.IsEnabled = true;
         }
+    }
+
+    private void OnFoundClick(object sender, MouseButtonEventArgs e)
+    {
+        // A click anywhere on the row toggles it; the checkbox handles its own clicks.
+        if (sender is ListBoxItem { DataContext: FoundTool found } && e.OriginalSource is not System.Windows.Controls.Primitives.ToggleButton
+            && !IsInside<CheckBox>(e.OriginalSource as DependencyObject))
+        {
+            found.IsChecked = !found.IsChecked;
+        }
+    }
+
+    private static bool IsInside<T>(DependencyObject? element)
+        where T : DependencyObject
+    {
+        for (; element is not null; element = System.Windows.Media.VisualTreeHelper.GetParent(element))
+        {
+            if (element is T)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void UpdateAddFound()
+    {
+        int count = _found.Count(f => f.IsChecked);
+        AddFoundButton.Content = count > 0 ? $"Add {count}" : "Add";
+        AddFoundButton.IsEnabled = count > 0;
+    }
+
+    private void OnAddFound(object sender, RoutedEventArgs e)
+    {
+        Add(_found.Where(f => f.IsChecked).Select(f => f.Tool.Path));
+        CloseFind();
+    }
+
+    private void OnFindBack(object sender, RoutedEventArgs e) => CloseFind();
+
+    private void CloseFind()
+    {
+        FindPage.Visibility = Visibility.Collapsed;
+        MainPage.Visibility = Visibility.Visible;
+        _found.Clear();
     }
 
     /// <returns>How many were new.</returns>
