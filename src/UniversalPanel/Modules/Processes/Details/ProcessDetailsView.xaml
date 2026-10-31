@@ -188,12 +188,20 @@
             IsReadOnly="True"
             PreviewMouseRightButtonDown="OnModulesRightButtonDown"
             RowHeight="28"
-            RowStyle="{StaticResource DetailRow}"
             SelectionMode="Single"
             TextColumnElementStyle="{StaticResource CellText}"
             VirtualizingPanel.IsVirtualizing="True"
             VirtualizingPanel.VirtualizationMode="Recycling"
           >
+            <ui:DataGrid.RowStyle>
+              <Style BasedOn="{StaticResource DetailRow}" TargetType="DataGridRow">
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Flagged}" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCautionBrush}" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </ui:DataGrid.RowStyle>
             <ui:DataGrid.ContextMenu>
               <ContextMenu>
                 <MenuItem Click="OnModuleOpenLocation" Header="Open file location">
@@ -217,6 +225,7 @@
               <DataGridTextColumn Width="*" Binding="{Binding Name}" Header="Name" SortMemberPath="Name" />
               <DataGridTextColumn Width="140" Binding="{Binding BaseText}" Header="Base" SortMemberPath="BaseAddress" />
               <DataGridTextColumn Width="84" Binding="{Binding SizeText}" Header="Size" SortMemberPath="Size" />
+              <DataGridTextColumn Width="130" Binding="{Binding SignerText}" Header="Signer" SortMemberPath="SignerText" />
             </ui:DataGrid.Columns>
           </ui:DataGrid>
           <!--  Holds a ProgressRing only while loading (see LoadingRing).  -->

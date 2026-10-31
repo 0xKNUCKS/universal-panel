@@ -63,13 +63,39 @@ internal sealed partial class ProcessDetailsView
         }
 
         LoadingRing.Set(ModulesSpinner, false);
-        ModulesSummary.Text = $"{records.Count} modules";
+        ModulesSummary.Text = $"{records.Count} modules · checking signatures…";
+        _ = Guard.RunAsync("Details.Modules.Verify", () => VerifyModulesAsync(version, _modules.ToList()));
 
         // Start addresses can now be shown as module+offset.
         foreach (var thread in _threads)
         {
             thread.RefreshStart(DescribeAddress);
         }
+    }
+
+    /// <summary>
+    /// Signature and PE headers for each module, off the UI thread (catalog lookups take tens of
+    /// ms per file; results are cached per file, so other processes' shared DLLs are instant).
+    /// </summary>
+    private async Task VerifyModulesAsync(int version, List<ModuleRow> rows)
+    {
+        int flagged = 0;
+        foreach (var row in rows)
+        {
+            var (trust, pe) = await Task.Run(() => (FileTrust.Verify(row.Path), PeHeaders.Read(row.Path)));
+            if (version != _modulesLoadVersion)
+            {
+                return; // Another process (or a refresh) took over.
+            }
+
+            row.SetVerification(trust, pe);
+            if (row.Flagged)
+            {
+                flagged++;
+            }
+        }
+
+        ModulesSummary.Text = $"{rows.Count} modules" + (flagged > 0 ? $" · {flagged} unsigned or from user folders" : " · all signed");
     }
 
     private string DescribeAddress(ulong? address) => address switch
