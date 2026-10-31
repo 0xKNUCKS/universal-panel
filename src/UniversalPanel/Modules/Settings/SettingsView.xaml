@@ -1,0 +1,93 @@
+<UserControl
+  x:Class="UniversalPanel.Modules.Settings.SettingsView"
+  x:ClassModifier="internal"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+  PreviewKeyDown="OnPreviewKeyDown"
+>
+  <UserControl.Resources>
+    <Style x:Key="Title" BasedOn="{StaticResource {x:Type ui:TextBlock}}" TargetType="ui:TextBlock">
+      <Setter Property="FontTypography" Value="BodyStrong" />
+    </Style>
+    <Style x:Key="Hint" BasedOn="{StaticResource {x:Type ui:TextBlock}}" TargetType="ui:TextBlock">
+      <Setter Property="Appearance" Value="Secondary" />
+      <Setter Property="FontTypography" Value="Caption" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+  </UserControl.Resources>
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="0,0,4,8">
+      <ui:CardControl Margin="0,0,0,8" Icon="{ui:SymbolIcon Keyboard24}">
+        <ui:CardControl.Header>
+          <StackPanel>
+            <ui:TextBlock Style="{StaticResource Title}" Text="Toggle hotkey" />
+            <ui:TextBlock x:Name="HotkeyHint" Style="{StaticResource Hint}" Text="Shows or hides the panel from anywhere." />
+          </StackPanel>
+        </ui:CardControl.Header>
+        <ui:Button x:Name="HotkeyButton" MinWidth="120" Click="OnHotkeyClick" />
+      </ui:CardControl>
+
+      <ui:CardControl Margin="0,0,0,8" Icon="{ui:SymbolIcon Power24}">
+        <ui:CardControl.Header>
+          <StackPanel>
+            <ui:TextBlock Style="{StaticResource Title}" Text="Start with Windows" />
+            <ui:TextBlock Style="{StaticResource Hint}" Text="As administrator uses a logon task, so there's no UAC prompt each time. Changing it asks once." />
+          </StackPanel>
+        </ui:CardControl.Header>
+        <ComboBox x:Name="StartupBox" MinWidth="150" SelectionChanged="OnStartupChanged">
+          <ComboBoxItem Content="Off" Tag="Off" />
+          <ComboBoxItem Content="On" Tag="Normal" />
+          <ComboBoxItem Content="On, as administrator" Tag="Elevated" />
+        </ComboBox>
+      </ui:CardControl>
+
+      <ui:CardControl Margin="0,0,0,8" Icon="{ui:SymbolIcon DarkTheme24}">
+        <ui:CardControl.Header>
+          <ui:TextBlock Style="{StaticResource Title}" Text="Theme" />
+        </ui:CardControl.Header>
+        <ComboBox x:Name="ThemeBox" MinWidth="150" SelectionChanged="OnThemeChanged">
+          <ComboBoxItem Content="Dark" Tag="Dark" />
+          <ComboBoxItem Content="Light" Tag="Light" />
+          <ComboBoxItem Content="Follow Windows" Tag="System" />
+        </ComboBox>
+      </ui:CardControl>
+
+      <ui:CardControl Margin="0,0,0,8" Icon="{ui:SymbolIcon Pulse24}">
+        <ui:CardControl.Header>
+          <StackPanel>
+            <ui:TextBlock Style="{StaticResource Title}" Text="Process refresh interval" />
+            <ui:TextBlock Style="{StaticResource Hint}" Text="Faster updates cost more CPU while the list is open. Applies the next time it's shown." />
+          </StackPanel>
+        </ui:CardControl.Header>
+        <ComboBox x:Name="RefreshBox" MinWidth="150" SelectionChanged="OnRefreshChanged">
+          <ComboBoxItem Content="0.5 seconds" Tag="0.5" />
+          <ComboBoxItem Content="1 second" Tag="1" />
+          <ComboBoxItem Content="2 seconds" Tag="2" />
+          <ComboBoxItem Content="5 seconds" Tag="5" />
+        </ComboBox>
+      </ui:CardControl>
+
+      <ui:CardControl Margin="0,0,0,8" Icon="{ui:SymbolIcon ArrowAutofitWidth24}">
+        <ui:CardControl.Header>
+          <StackPanel>
+            <ui:TextBlock Style="{StaticResource Title}" Text="Panel width" />
+            <ui:TextBlock Style="{StaticResource Hint}" Text="Drag the panel's left edge to resize it." />
+          </StackPanel>
+        </ui:CardControl.Header>
+        <ui:Button MinWidth="120" Click="OnResetWidthClick" Content="Reset" />
+      </ui:CardControl>
+
+      <ui:CardControl Margin="0,0,0,8" Icon="{ui:SymbolIcon DocumentText24}">
+        <ui:CardControl.Header>
+          <StackPanel>
+            <ui:TextBlock Style="{StaticResource Title}" Text="Logs" />
+            <ui:TextBlock Style="{StaticResource Hint}" Text="Errors and warnings, kept for 7 days." />
+          </StackPanel>
+        </ui:CardControl.Header>
+        <ui:Button MinWidth="120" Click="OnOpenLogsClick" Content="Open folder" />
+      </ui:CardControl>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

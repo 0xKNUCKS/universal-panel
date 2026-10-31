@@ -197,6 +197,18 @@ public partial class PanelWindow : FluentWindow, IModuleHost
         this.SetWindowPos(_rect.X, _rect.Y, _rect.Width, _rect.Height);
     }
 
+    /// <summary>Back to the default width (Settings page); re-docks right away if open.</summary>
+    public void ResetWidth()
+    {
+        _settings.PanelWidth = PanelSettings.DefaultWidth;
+        _settings.Save();
+        if (_isOpen)
+        {
+            _rect = MonitorPlacement.RightEdgeOfMonitorUnderCursor(_settings.PanelWidth);
+            this.SetWindowPos(_rect.X, _rect.Y, _rect.Width, _rect.Height);
+        }
+    }
+
     private void OnResizeCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e) =>
         _settings.Save();
 

@@ -51,6 +51,7 @@ fixed types and scopes:
 | `launcher` | Tools launcher module |
 | `python` | Python console / script runner module |
 | `network` | Network monitor module |
+| `settings` | Settings page (`Modules/Settings/`) and the persisted settings it edits |
 | `docs` | `docs/`, `README.md` (when the commit is docs-only) |
 | `build` | Build configuration |
 | `repo` | Repo-level files (.gitignore, .claude/) |

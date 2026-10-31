@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using H.NotifyIcon;
 using H.NotifyIcon.Core;
@@ -9,6 +10,7 @@ using UniversalPanel.Diagnostics;
 using UniversalPanel.Modules;
 using UniversalPanel.Native;
 using UniversalPanel.Modules.Processes;
+using UniversalPanel.Modules.Settings;
 using UniversalPanel.Shell;
 using Windows.Win32;
 using Windows.Win32.System.LibraryLoader;
@@ -23,6 +25,7 @@ public partial class App : Application, ISingleInstanceApp
 {
     private PanelWindow? _panel;
     private TaskbarIcon? _tray;
+    private KeyGesture _hotkey = HotkeyService.DefaultToggleGesture;
 
     // Startup flow mirrors Flow Launcher's App.Main (MIT): gate on single instance, then Run().
     [STAThread]
@@ -76,12 +79,24 @@ public partial class App : Application, ISingleInstanceApp
     {
         base.OnStartup(e);
 
-        _panel = new PanelWindow([new ProcessesModule(), .. PlaceholderModule.Defaults]);
+        var settings = PanelSettings.Current;
+        ThemeSettings.Apply(settings.Theme);
+        ProcessSampler.Interval = TimeSpan.FromSeconds(settings.ProcessRefreshSeconds);
+
+        var settingsModule = new SettingsModule(new SettingsActions(
+            CurrentHotkey: () => _hotkey,
+            ApplyHotkey: ChangeHotkey,
+            ResetPanelWidth: () => _panel?.ResetWidth(),
+            OpenLogFolder: OpenLogFolder));
+
+        _panel = new PanelWindow([new ProcessesModule(), .. PlaceholderModule.Defaults, settingsModule]);
         _panel.Initialize();
+
+        _hotkey = HotkeyFormat.FromSettings(settings);
         _tray = CreateTrayIcon();
 
-        var gesture = HotkeyService.DefaultToggleGesture;
-        var hotkeyError = HotkeyService.RegisterToggle(gesture, () => Guard.Run("Hotkey.Toggle", _panel.Toggle));
+        var gesture = _hotkey;
+        var hotkeyError = RegisterHotkey(gesture);
         if (hotkeyError is not null)
         {
             Log.Warn("Hotkey", hotkeyError);
@@ -113,7 +128,7 @@ public partial class App : Application, ISingleInstanceApp
 
         var tray = new TaskbarIcon
         {
-            ToolTipText = $"Universal Panel ({HotkeyService.DefaultToggleGesture.DisplayString})" + (Elevation.IsElevated ? " (Administrator)" : string.Empty),
+            ToolTipText = TrayToolTip(),
             IconSource = new GeneratedIconSource
             {
                 Text = "U",
@@ -139,6 +154,34 @@ public partial class App : Application, ISingleInstanceApp
         item.Click += (_, _) => Guard.Run($"Tray.{header}", action);
         return item;
     }
+
+    private string? RegisterHotkey(KeyGesture gesture) =>
+        HotkeyService.RegisterToggle(gesture, () => Guard.Run("Hotkey.Toggle", () => _panel?.Toggle()));
+
+    /// <summary>
+    /// Settings page: switch to a new hotkey, or keep the old one (re-registered) if the new one is
+    /// taken. AddOrReplace removes the old registration first, so a failure would otherwise leave none.
+    /// </summary>
+    private string? ChangeHotkey(KeyGesture gesture)
+    {
+        if (RegisterHotkey(gesture) is { } error)
+        {
+            RegisterHotkey(_hotkey);
+            return error;
+        }
+
+        _hotkey = gesture;
+        HotkeyFormat.Save(PanelSettings.Current, gesture);
+        if (_tray is not null)
+        {
+            _tray.ToolTipText = TrayToolTip();
+        }
+
+        return null;
+    }
+
+    private string TrayToolTip() =>
+        $"Universal Panel ({_hotkey.DisplayString})" + (Elevation.IsElevated ? " (Administrator)" : string.Empty);
 
     /// <summary>UAC prompt; on success this instance exits and the elevated copy takes over.</summary>
     private void RestartElevated()

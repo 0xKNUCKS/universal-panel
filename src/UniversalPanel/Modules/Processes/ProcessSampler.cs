@@ -28,7 +28,8 @@ internal sealed record ProcessFrame(
 /// </summary>
 internal sealed class ProcessSampler : IDisposable
 {
-    private static readonly TimeSpan Interval = TimeSpan.FromSeconds(1);
+    /// <summary>Sampling period (Settings page); a change applies the next time sampling starts.</summary>
+    internal static TimeSpan Interval { get; set; } = TimeSpan.FromSeconds(1);
     private static readonly TimeSpan WarmUp = TimeSpan.FromMilliseconds(400);
 
     private readonly ProcessSnapshotReader _reader = new();

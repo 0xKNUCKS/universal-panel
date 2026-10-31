@@ -28,6 +28,21 @@ internal sealed class PanelSettings
 
     public double PanelWidth { get; set; } = DefaultWidth;
 
+    // --- General (Settings page) ------------------------------------------------------------
+
+    /// <summary>Toggle hotkey as WPF Key / ModifierKeys names; null means the default (Alt+`).</summary>
+    public string? HotkeyKey { get; set; }
+
+    public string? HotkeyModifiers { get; set; }
+
+    /// <summary>"Dark", "Light" or "System".</summary>
+    public string Theme { get; set; } = "Dark";
+
+    /// <summary>"Off", "Normal" (Run key) or "Elevated" (logon scheduled task).</summary>
+    public string StartWithWindows { get; set; } = "Off";
+
+    public double ProcessRefreshSeconds { get; set; } = 1;
+
     // --- Processes module -----------------------------------------------------------------
 
     public bool ProcessTree { get; set; } = true;
@@ -66,6 +81,14 @@ internal sealed class PanelSettings
             .Where(kv => !string.IsNullOrWhiteSpace(kv.Key) && double.IsFinite(kv.Value))
             .Take(32)
             .ToDictionary(kv => kv.Key, kv => Math.Clamp(kv.Value, MinColumnWidth, MaxColumnWidth));
+        Theme = Theme is "Dark" or "Light" or "System" ? Theme : "Dark";
+        StartWithWindows = StartWithWindows is "Off" or "Normal" or "Elevated" ? StartWithWindows : "Off";
+        ProcessRefreshSeconds = double.IsFinite(ProcessRefreshSeconds) ? Math.Clamp(ProcessRefreshSeconds, 0.25, 10) : 1;
+        if (HotkeyKey is { Length: > 32 } || HotkeyModifiers is { Length: > 64 })
+        {
+            HotkeyKey = HotkeyModifiers = null;
+        }
+
         if (ProcessSort is { Length: > 64 })
         {
             ProcessSort = null;
