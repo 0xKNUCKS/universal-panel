@@ -90,7 +90,7 @@ public partial class App : Application, ISingleInstanceApp
             ResetPanelWidth: () => _panel?.ResetWidth(),
             OpenLogFolder: OpenLogFolder));
 
-        _panel = new PanelWindow([new ProcessesModule(), .. PlaceholderModule.Defaults, settingsModule]);
+        _panel = new PanelWindow([new ProcessesModule(), new Modules.Tools.ToolsModule(), .. PlaceholderModule.Defaults, settingsModule]);
         _panel.Initialize();
 
         _hotkey = HotkeyFormat.FromSettings(settings);

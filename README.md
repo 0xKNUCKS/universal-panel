@@ -12,7 +12,8 @@ The shell works: tray icon, hotkey, slide-in panel, module rail, error handling 
 | Module | State |
 |---|---|
 | Processes | Done. Live list (CPU, memory, filter, sort); end, suspend, resume, priority, open file location, copy path. Details page per process: live threads (suspend, resume, end; start address as module+offset), loaded modules, and handles (friendly names, hide unnamed, close handle). Critical processes get an explicit warning. |
-| Tools, Python, Network | Placeholders |
+| Tools | Done. Launcher with real icons; recognizes IDA, Ghidra, x64dbg, DIE, System Informer, PE-bear and others, showing their version and whether they are signed by their publisher (Verified) or only identified by version info. "Find installed" adds the ones it finds. Opens tools unelevated even from an elevated panel. |
+| Python, Network | Placeholders |
 
 The process list samples once per second only while it's on screen (about 2.5% of one core while open, 0 while hidden).
 Without elevation, actions on other users' and protected processes fail with "access denied", by design.

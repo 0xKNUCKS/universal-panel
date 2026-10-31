@@ -34,8 +34,6 @@ internal sealed class PlaceholderModule(string id, string title, SymbolRegular i
 
     public static IReadOnlyList<IPanelModule> Defaults { get; } =
     [
-        new PlaceholderModule("launcher", "Tools", SymbolRegular.Apps24,
-            "One-click launcher for IDA, DIE, Ghidra, HxD, Postman and other tools, with their real icons."),
         new PlaceholderModule("python", "Python", SymbolRegular.Code24,
             "Interactive Python console and script runner, out-of-process."),
         new PlaceholderModule("network", "Network", SymbolRegular.Globe24,

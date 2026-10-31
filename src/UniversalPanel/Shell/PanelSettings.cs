@@ -58,6 +58,13 @@ internal sealed class PanelSettings
     /// <summary>Process list column widths by SortMemberPath (fixed-width columns only).</summary>
     public Dictionary<string, double> ProcessColumnWidths { get; set; } = [];
 
+    // --- Tools module ---------------------------------------------------------------------
+
+    /// <summary>Launcher entries, in display order: full paths to executables or scripts.
+    /// Deliberately no "always run as administrator" flag: this file is user-writable, so it must
+    /// never be able to make an elevated panel start something elevated without a click.</summary>
+    public List<string> Tools { get; set; } = [];
+
     private static PanelSettings Load()
     {
         try
@@ -91,6 +98,12 @@ internal sealed class PanelSettings
         {
             HotkeyKey = HotkeyModifiers = null;
         }
+
+        Tools = (Tools ?? [])
+            .Where(t => t is { Length: > 3 and < 1024 } && Path.IsPathFullyQualified(t) && !t.Contains('"'))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(200)
+            .ToList();
 
         if (ProcessSort is { Length: > 64 })
         {
