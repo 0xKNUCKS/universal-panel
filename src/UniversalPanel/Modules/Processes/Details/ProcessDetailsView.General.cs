@@ -16,13 +16,13 @@ internal sealed partial class ProcessDetailsView
         var key = process.Key;
         GeneralList.ItemsSource = DescribeGeneral(process, info: null);
 
-        var (info, extras, dotnet) = await Task.Run(() => (ProcessGeneral.Query(key), ProcessExtras.Query(key), DetectDotNet(key, process.Name)));
+        var (info, extras, platform) = await Task.Run(() => (ProcessGeneral.Query(key), ProcessExtras.Query(key), DetectPlatform(key, process.Name, process.ImagePath)));
         if (version == _generalVersion && Target == key)
         {
             var rows = DescribeGeneral(process, info);
             rows.Add(new("Protection", extras.Protection ?? Unavailable));
             rows.Add(new("Mitigations", extras.Mitigations.Count > 0 ? string.Join(", ", extras.Mitigations) : Unavailable));
-            rows.Add(new(".NET", dotnet ?? Unavailable));
+            rows.Add(new("Platform", platform ?? Unavailable));
             rows.Add(new("Privileges", extras.Privileges.Count > 0 ? string.Join("\n", extras.Privileges) : Unavailable));
             rows.Add(new($"Environment{(extras.Environment is { } env ? $" ({env.Count})" : string.Empty)}",
                 extras.Environment is { } vars ? string.Join("\n", vars.Select(kv => $"{kv.Key}={kv.Value}")) : Unavailable));
@@ -62,20 +62,20 @@ internal sealed partial class ProcessDetailsView
         ];
     }
 
-    /// <summary>Which .NET runtime is loaded, from the module list (null if it can't be read).</summary>
-    private static string? DetectDotNet(ProcessKey key, string name)
+    /// <summary>Language / runtime from the image and loaded modules (null if neither can be read).</summary>
+    private static string? DetectPlatform(ProcessKey key, string name, string? imagePath)
     {
+        List<string> modules;
         try
         {
-            var modules = ModuleSnapshot.Capture(key, name);
-            bool core = modules.Any(m => m.Name.Equals("coreclr.dll", StringComparison.OrdinalIgnoreCase));
-            bool framework = modules.Any(m => m.Name.Equals("clr.dll", StringComparison.OrdinalIgnoreCase));
-            return core ? ".NET (CoreCLR)" : framework ? ".NET Framework (CLR)" : "Not loaded";
+            modules = ModuleSnapshot.Capture(key, name).Select(m => m.Name).ToList();
         }
         catch (ProcessActionException)
         {
-            return null;
+            modules = [];
         }
+
+        return PlatformDetect.Describe(imagePath, modules);
     }
 
     /// <summary>Same parent rule as the tree: the parent must not be newer than the child.</summary>

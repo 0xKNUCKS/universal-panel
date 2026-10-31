@@ -36,6 +36,7 @@ Reference snapshots (shallow clones, read 2026-10-29):
 | [HavenDV/H.NotifyIcon](https://github.com/HavenDV/H.NotifyIcon) | MIT | `d590d46aa18d480782c8aaf5bf4fee2b4c12accf` |
 | [winsiderss/systeminformer](https://github.com/winsiderss/systeminformer) | MIT | `c2f1489890f14de76b985c0142cbad154d92623d` |
 | [horsicq/Formats](https://github.com/horsicq/Formats) (Detect It Easy) | MIT | `dd3704da34e065b3754135bfce8cb3612804c227` |
+| [horsicq/Detect-It-Easy](https://github.com/horsicq/Detect-It-Easy) | MIT | `adc0617abd4d35e7449c767f62cf6ae276c67762` |
 
 ### Shell
 
@@ -76,6 +77,7 @@ Reference snapshots (shallow clones, read 2026-10-29):
 | `src/UniversalPanel/Diagnostics/ErrorReporter.cs` (`IsRecoverableDwmCompositionException`) | PowerToys `src/modules/launcher/PowerLauncher/Helper/ExceptionHelper.cs`, as copied by Flow Launcher `Flow.Launcher/Helper/ExceptionHelper.cs` | Filter for harmless `WindowChrome` COM exceptions during DWM composition changes |
 | `src/UniversalPanel/App.xaml.cs` (startup catch) | Flow Launcher `App.ShowErrorMsgBoxAndFailFast` | Startup failures are logged and shown, never silent |
 | `src/UniversalPanel/Native/MemoryStrings.cs` | System Informer `SystemInformer/memsrch.c` (`PhpMemoryStringSearchNextBuffer`); DIE Formats `xbinary.cpp` (`multiSearch_allStrings`, `isAnsiSymbol`, `isUnicodeSymbol`) | SI: region walk (commit only, skip NOACCESS/GUARD, type mask, bounded reads). DIE: ANSI 0x20-0x7F runs and UTF-16LE as two parity lanes of code units (0x20-0xFF + Cyrillic), state kept across chunks, over-long runs cut at the max length |
+| `src/UniversalPanel/Native/PlatformDetect.cs` | DIE `db/PE/*.sg` (compiler_Go, compiler_Rust, compiler_Delphi, compiler_Nim, compiler_Zig, compiler_MinGW, packer_PyInstaller, packer_Nuitka, library_Python, library_Qt, library_ElectronApp, format_AutoIt) | Marker bytes and conditions per rule. Deviations: markers searched per section, runtime DLLs from the live module list; MinGW requires no Rich header (DIE itself matched "gcc-"); CPADinfo reported as Chromium unless `ELECTRON_RUN_AS_NODE` is present (Edge/Roblox matched); AutoIt also needs the `AU3!` header |
 
 Our own additions (no upstream equivalent, kept small on purpose): de-duplication of repeated
 errors, the UI-exception circuit breaker, `Guard` boundaries, and the bounded background logger.
