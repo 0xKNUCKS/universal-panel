@@ -1,6 +1,10 @@
-// Like System Informer's memory string search (SystemInformer/memsrch.c, behavior): printable
-// ASCII and UTF-16LE runs of a minimum length, with their addresses.
+// Region walk after System Informer (SystemInformer/memsrch.c, PhpMemoryStringSearchNextBuffer):
+// committed regions, skipping NOACCESS / GUARD, filtered by type, read in bounded chunks.
 // https://github.com/winsiderss/systeminformer @ c2f1489890f14de76b985c0142cbad154d92623d
+// String matching ported from Detect It Easy's XBinary (xbinary.cpp: multiSearch_allStrings,
+// isAnsiSymbol, isUnicodeSymbol): ANSI runs of 0x20-0x7F bytes, and UTF-16LE as two parity
+// lanes of 16-bit code units (0x20-0xFF and Cyrillic), state carried across chunks.
+// https://github.com/horsicq/Formats @ dd3704da34e065b3754135bfce8cb3612804c227
 
 using System.Text;
 
@@ -11,7 +15,7 @@ internal sealed record MemoryString(ulong Address, bool Unicode, string Text);
 internal static class MemoryStrings
 {
     public const int MinLength = 5;
-    private const int MaxLength = 1024; // longer runs are cut, not dropped
+    private const int MaxLength = 1024;
 
     /// <summary>Strings in a region, scanned chunk by chunk with state carried across chunks.</summary>
     /// <param name="contains">Optional: only strings containing this (case-insensitive) are kept,
@@ -19,8 +23,7 @@ internal static class MemoryStrings
     public static List<MemoryString> Scan(ProcessKey key, string processName, ulong baseAddress, ulong size, int maxResults, CancellationToken ct, string? contains = null)
     {
         var results = new List<MemoryString>();
-        var ascii = new Run(unicode: false, results, maxResults, contains);
-        var wide = new Run(unicode: true, results, maxResults, contains);
+        var matcher = new Matcher(results, maxResults, contains);
 
         try
         {
@@ -29,8 +32,7 @@ internal static class MemoryStrings
                 ct.ThrowIfCancellationRequested();
                 for (int i = 0; i < chunk.Length; i++)
                 {
-                    ascii.Feed(chunk[i], address + (ulong)i);
-                    wide.Feed(chunk[i], address + (ulong)i);
+                    matcher.Feed(chunk[i], address + (ulong)i);
                 }
 
                 if (results.Count >= maxResults)
@@ -43,8 +45,7 @@ internal static class MemoryStrings
         {
         }
 
-        ascii.Flush();
-        wide.Flush();
+        matcher.Flush();
         results.Sort((a, b) => a.Address.CompareTo(b.Address));
         return results.Count > maxResults ? results[..maxResults] : results;
     }
@@ -84,95 +85,93 @@ internal static class MemoryStrings
     private static bool Readable(string protection) =>
         protection.Length > 0 && protection != "NA" && protection != "X" && !protection.Contains("+G", StringComparison.Ordinal);
 
-    private static bool Printable(byte b) => b is >= 0x20 and < 0x7F or (byte)'\t';
+    // XBinary::isAnsiSymbol(bExtra = false)
+    private static bool IsAnsiSymbol(byte b) => b is >= 0x20 and < 0x80;
+
+    // XBinary::isUnicodeSymbol(bExtra = true)
+    private static bool IsUnicodeSymbol(ushort c) => c is >= 0x20 and <= 0xFF or >= 0x0400 and <= 0x04FF;
 
     private sealed class StopScan : Exception;
 
-    /// <summary>One encoding's current run of printable characters.</summary>
-    private sealed class Run(bool unicode, List<MemoryString> results, int maxResults, string? contains)
+    /// <summary>
+    /// The scan state: one ANSI run and two UTF-16 lanes (even / odd start address), fed byte by
+    /// byte; each code unit is the previous byte plus this one, so its lane is this byte's parity.
+    /// </summary>
+    private sealed class Matcher(List<MemoryString> results, int maxResults, string? contains)
     {
-        private readonly StringBuilder _text = new();
-        private ulong _start;
-        private bool _highBytePending; // UTF-16: next byte must be 0x00
-        private bool _oddPhase;        // UTF-16: which byte parity the current run uses
+        private readonly Lane _ansi = new(unicode: false);
+        private readonly Lane[] _wide = [new(unicode: true), new(unicode: true)];
+        private byte _previous;
+        private bool _started;
 
         public void Feed(byte b, ulong address)
         {
-            if (!unicode)
+            if (IsAnsiSymbol(b))
             {
-                if (Printable(b))
-                {
-                    Append((char)b, address);
-                }
-                else
-                {
-                    Flush();
-                }
-
-                return;
-            }
-
-            // UTF-16LE: printable low byte followed by a zero high byte.
-            if (_highBytePending)
-            {
-                _highBytePending = false;
-                if (b != 0)
-                {
-                    Flush();
-                    TryStart(b, address); // this byte may begin a new run
-                }
-
-                return;
-            }
-
-            TryStart(b, address);
-        }
-
-        private void TryStart(byte b, ulong address)
-        {
-            bool phase = (address & 1) != 0;
-            if (Printable(b) && (_text.Length == 0 || phase == _oddPhase))
-            {
-                if (_text.Length == 0)
-                {
-                    _oddPhase = phase;
-                }
-
-                Append((char)b, address);
-                _highBytePending = true;
+                _ansi.Append((char)b, address);
             }
             else
             {
-                Flush();
-            }
-        }
-
-        private void Append(char c, ulong address)
-        {
-            if (_text.Length == 0)
-            {
-                _start = address;
+                End(_ansi);
             }
 
-            if (_text.Length < MaxLength)
+            if (_started)
             {
-                _text.Append(c);
+                var code = (ushort)(_previous | (b << 8));
+                var lane = _wide[(int)(address & 1)];
+                if (IsUnicodeSymbol(code))
+                {
+                    lane.Append((char)code, address - 1);
+                }
+                else
+                {
+                    End(lane);
+                }
             }
+
+            _previous = b;
+            _started = true;
         }
 
         public void Flush()
         {
-            if (_text.Length >= MinLength && results.Count < maxResults)
+            End(_ansi);
+            End(_wide[0]);
+            End(_wide[1]);
+        }
+
+        private void End(Lane lane)
+        {
+            if (lane.Text.Length >= MinLength && results.Count < maxResults)
             {
-                var text = _text.ToString();
+                var text = lane.Text.ToString();
                 if (contains is null || text.Contains(contains, StringComparison.OrdinalIgnoreCase))
                 {
-                    results.Add(new MemoryString(_start, unicode, text));
+                    results.Add(new MemoryString(lane.Start, lane.Unicode, text));
                 }
             }
 
-            _text.Clear();
-            _highBytePending = false;
+            lane.Text.Clear();
+        }
+    }
+
+    private sealed class Lane(bool unicode)
+    {
+        public readonly StringBuilder Text = new();
+        public ulong Start;
+        public bool Unicode => unicode;
+
+        public void Append(char c, ulong address)
+        {
+            if (Text.Length == 0)
+            {
+                Start = address;
+            }
+
+            if (Text.Length < MaxLength)
+            {
+                Text.Append(c); // longer runs are cut, not split (XBinary nMaxLenght)
+            }
         }
     }
 }
