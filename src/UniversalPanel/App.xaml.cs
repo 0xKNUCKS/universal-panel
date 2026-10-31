@@ -109,6 +109,7 @@ public partial class App : Application, ISingleInstanceApp
             CurrentHotkey: () => _hotkey,
             ApplyHotkey: ChangeHotkey,
             ResetPanelWidth: () => _panel?.ResetWidth(),
+            Redock: () => _panel?.Redock(),
             OpenLogFolder: OpenLogFolder));
 
         _panel = new PanelWindow([new ProcessesModule(), new Modules.Tools.ToolsModule(), .. PlaceholderModule.Defaults, settingsModule]);

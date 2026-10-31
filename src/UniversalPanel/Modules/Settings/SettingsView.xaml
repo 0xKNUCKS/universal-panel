@@ -62,7 +62,7 @@
         <ui:CardControl.Header>
           <StackPanel>
             <ui:TextBlock Style="{StaticResource Title}" Text="Show on" />
-            <ui:TextBlock Style="{StaticResource Hint}" Text="Which screen the hotkey opens the panel on. A display that's unplugged falls back to the primary one." />
+            <ui:TextBlock Style="{StaticResource Hint}" Text="Which screen the panel opens on; changing it moves the panel there now. An unplugged display falls back to the primary one." />
           </StackPanel>
         </ui:CardControl.Header>
         <ComboBox x:Name="MonitorBox" MinWidth="150" SelectionChanged="OnMonitorChanged" />

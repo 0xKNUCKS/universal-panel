@@ -9,6 +9,7 @@ internal sealed record SettingsActions(
     Func<KeyGesture> CurrentHotkey,
     Func<KeyGesture, string?> ApplyHotkey,
     Action ResetPanelWidth,
+    Action Redock,
     Action OpenLogFolder);
 
 internal sealed class SettingsModule(SettingsActions actions) : IPanelModule

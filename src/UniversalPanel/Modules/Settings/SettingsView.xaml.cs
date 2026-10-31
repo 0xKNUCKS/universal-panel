@@ -164,6 +164,7 @@ internal sealed partial class SettingsView : UserControl
         {
             Settings.PanelMonitor = choice;
             Settings.SaveSoon();
+            _actions.Redock(); // move there now, not on the next hotkey press
         }
     }
 

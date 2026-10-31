@@ -202,9 +202,17 @@ public partial class PanelWindow : FluentWindow, IModuleHost
     {
         _settings.PanelWidth = PanelSettings.DefaultWidth;
         _settings.Save();
+        Redock();
+    }
+
+    /// <summary>Re-places an open panel per the current width and monitor settings (Settings page).</summary>
+    public void Redock()
+    {
         if (_isOpen)
         {
             _rect = MonitorPlacement.RightEdge(_settings.PanelWidth, _settings.PanelMonitor);
+            // Twice, as in ShowPanel: moving to a monitor with another DPI rescales the window mid-call.
+            this.SetWindowPos(_rect.X, _rect.Y, _rect.Width, _rect.Height);
             this.SetWindowPos(_rect.X, _rect.Y, _rect.Width, _rect.Height);
         }
     }
