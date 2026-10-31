@@ -123,6 +123,10 @@ internal sealed partial class ProcessesView
 
         e.Column.SortDirection = _sortPath is null ? null : _sortDirection;
         ApplyViewMode();
+
+        Settings.ProcessSort = _sortPath;
+        Settings.ProcessSortDescending = _sortDirection == ListSortDirection.Descending;
+        Settings.SaveSoon();
     }
 
     private void OnExpanderClick(object sender, RoutedEventArgs e)
@@ -191,8 +195,51 @@ internal sealed partial class ProcessesView
     private void OnTreeToggleClick(object sender, RoutedEventArgs e)
     {
         _treeEnabled = !_treeEnabled;
+        UpdateTreeToggle();
+        ApplyViewMode();
+        Settings.ProcessTree = _treeEnabled;
+        Settings.SaveSoon();
+    }
+
+    private static Shell.PanelSettings Settings => Shell.PanelSettings.Current;
+
+    private void UpdateTreeToggle()
+    {
         TreeToggle.Appearance = _treeEnabled ? ControlAppearance.Primary : ControlAppearance.Secondary;
         TreeToggle.ToolTip = _treeEnabled ? "Showing the process tree (click for a flat list)" : "Showing a flat list (click for the process tree)";
-        ApplyViewMode();
+    }
+
+    /// <summary>Restores tree mode, sort and column widths, and starts tracking width changes.</summary>
+    private void RestoreViewSettings()
+    {
+        _treeEnabled = Settings.ProcessTree;
+        UpdateTreeToggle();
+
+        var sortColumn = Grid.Columns.FirstOrDefault(c => c.SortMemberPath == Settings.ProcessSort);
+        if (sortColumn is not null)
+        {
+            _sortPath = sortColumn.SortMemberPath;
+            _sortDirection = Settings.ProcessSortDescending ? ListSortDirection.Descending : ListSortDirection.Ascending;
+            sortColumn.SortDirection = _sortDirection;
+        }
+
+        var widthProperty = DependencyPropertyDescriptor.FromProperty(DataGridColumn.WidthProperty, typeof(DataGridColumn));
+        foreach (var column in Grid.Columns.Where(c => !c.Width.IsStar))
+        {
+            var path = column.SortMemberPath;
+            if (Settings.ProcessColumnWidths.TryGetValue(path, out var width))
+            {
+                column.Width = new DataGridLength(width);
+            }
+
+            widthProperty.AddValueChanged(column, (_, _) =>
+            {
+                if (column.Width.IsAbsolute)
+                {
+                    Settings.ProcessColumnWidths[path] = column.Width.Value;
+                    Settings.SaveSoon();
+                }
+            });
+        }
     }
 }

@@ -27,7 +27,8 @@ internal sealed partial class ProcessesView : UserControl
         _view = (ListCollectionView)CollectionViewSource.GetDefaultView(_rows);
         _view.Filter = MatchesFilter;
         _view.IsLiveSorting = true;
-        ApplyViewMode(); // Tree mode by default (ProcessesView.Tree.cs).
+        RestoreViewSettings();
+        ApplyViewMode(); // Tree or flat per settings (ProcessesView.Tree.cs).
 
         Grid.ItemsSource = _view;
         BuildPriorityMenu();

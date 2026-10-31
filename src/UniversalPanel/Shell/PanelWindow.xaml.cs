@@ -17,7 +17,7 @@ namespace UniversalPanel.Shell;
 
 public partial class PanelWindow : FluentWindow, IModuleHost
 {
-    private readonly PanelSettings _settings = PanelSettings.Load();
+    private readonly PanelSettings _settings = PanelSettings.Current;
     private PixelRect _rect;
 
     private readonly Dictionary<IPanelModule, FrameworkElement> _views = [];

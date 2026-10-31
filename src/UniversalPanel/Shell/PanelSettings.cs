@@ -1,34 +1,53 @@
 using System.IO;
 using System.Text.Json;
+using System.Windows.Threading;
 using UniversalPanel.Diagnostics;
 
 namespace UniversalPanel.Shell;
 
 /// <summary>
-/// Persisted panel preferences in %LOCALAPPDATA%\UniversalPanel\settings.json. Treated as
-/// untrusted input (docs/SECURITY.md): unreadable or out-of-range values fall back to defaults.
+/// Persisted preferences in %LOCALAPPDATA%\UniversalPanel\settings.json, shared by the shell and
+/// modules through <see cref="Current"/>. Treated as untrusted input (docs/SECURITY.md):
+/// unreadable or out-of-range values fall back to defaults.
 /// </summary>
 internal sealed class PanelSettings
 {
     public const double DefaultWidth = 460;
     public const double MinWidth = 380;
     public const double MaxWidth = 1400;
+    private const double MinColumnWidth = 30;
+    private const double MaxColumnWidth = 1000;
 
     private static readonly string FilePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "UniversalPanel", "settings.json");
 
+    private static readonly Lazy<PanelSettings> Instance = new(Load);
+    private DispatcherTimer? _saveDebounce;
+
+    public static PanelSettings Current => Instance.Value;
+
     public double PanelWidth { get; set; } = DefaultWidth;
 
-    public static PanelSettings Load()
+    // --- Processes module -----------------------------------------------------------------
+
+    public bool ProcessTree { get; set; } = true;
+
+    /// <summary>Sort column (a SortMemberPath), or null for natural order.</summary>
+    public string? ProcessSort { get; set; }
+
+    public bool ProcessSortDescending { get; set; }
+
+    /// <summary>Process list column widths by SortMemberPath (fixed-width columns only).</summary>
+    public Dictionary<string, double> ProcessColumnWidths { get; set; } = [];
+
+    private static PanelSettings Load()
     {
         try
         {
             if (File.Exists(FilePath))
             {
                 var settings = JsonSerializer.Deserialize<PanelSettings>(File.ReadAllText(FilePath)) ?? new();
-                settings.PanelWidth = double.IsFinite(settings.PanelWidth)
-                    ? Math.Clamp(settings.PanelWidth, MinWidth, MaxWidth)
-                    : DefaultWidth;
+                settings.Sanitize();
                 return settings;
             }
         }
@@ -38,6 +57,31 @@ internal sealed class PanelSettings
         }
 
         return new PanelSettings();
+    }
+
+    private void Sanitize()
+    {
+        PanelWidth = double.IsFinite(PanelWidth) ? Math.Clamp(PanelWidth, MinWidth, MaxWidth) : DefaultWidth;
+        ProcessColumnWidths = (ProcessColumnWidths ?? [])
+            .Where(kv => !string.IsNullOrWhiteSpace(kv.Key) && double.IsFinite(kv.Value))
+            .Take(32)
+            .ToDictionary(kv => kv.Key, kv => Math.Clamp(kv.Value, MinColumnWidth, MaxColumnWidth));
+        if (ProcessSort is { Length: > 64 })
+        {
+            ProcessSort = null;
+        }
+    }
+
+    /// <summary>Saves after a short pause, so bursts (column drags) write once. UI thread only.</summary>
+    public void SaveSoon()
+    {
+        _saveDebounce ??= new DispatcherTimer(TimeSpan.FromMilliseconds(500), DispatcherPriority.Background, (_, _) =>
+        {
+            _saveDebounce!.Stop();
+            Save();
+        }, Dispatcher.CurrentDispatcher);
+        _saveDebounce.Stop();
+        _saveDebounce.Start();
     }
 
     public void Save()
