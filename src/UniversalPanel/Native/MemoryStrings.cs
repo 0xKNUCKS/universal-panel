@@ -14,11 +14,13 @@ internal static class MemoryStrings
     private const int MaxLength = 1024; // longer runs are cut, not dropped
 
     /// <summary>Strings in a region, scanned chunk by chunk with state carried across chunks.</summary>
-    public static List<MemoryString> Scan(ProcessKey key, string processName, ulong baseAddress, ulong size, int maxResults, CancellationToken ct)
+    /// <param name="contains">Optional: only strings containing this (case-insensitive) are kept,
+    /// so the result cap counts matches, not every string.</param>
+    public static List<MemoryString> Scan(ProcessKey key, string processName, ulong baseAddress, ulong size, int maxResults, CancellationToken ct, string? contains = null)
     {
         var results = new List<MemoryString>();
-        var ascii = new Run(unicode: false, results, maxResults);
-        var wide = new Run(unicode: true, results, maxResults);
+        var ascii = new Run(unicode: false, results, maxResults, contains);
+        var wide = new Run(unicode: true, results, maxResults, contains);
 
         try
         {
@@ -47,12 +49,47 @@ internal static class MemoryStrings
         return results.Count > maxResults ? results[..maxResults] : results;
     }
 
+    /// <summary>
+    /// Strings across the whole process: every committed, readable region (no guard / no-access /
+    /// execute-only pages), private and image memory; mapped files only when asked, since they're
+    /// mostly fonts and locale data. Regions that can't be read are skipped.
+    /// </summary>
+    public static List<MemoryString> ScanProcess(
+        ProcessKey key, string processName, bool includeMapped, int maxResults, IProgress<(int Done, int Total)>? progress, CancellationToken ct, string? contains = null)
+    {
+        var regions = MemoryRegions.Capture(key, processName)
+            .Where(r => r.State == "Commit" && Readable(r.Protection)
+                && (r.Type is "Private" or "Image" || (includeMapped && r.Type == "Mapped")))
+            .ToList();
+
+        var results = new List<MemoryString>();
+        for (int i = 0; i < regions.Count && results.Count < maxResults; i++)
+        {
+            ct.ThrowIfCancellationRequested();
+            progress?.Report((i, regions.Count));
+            try
+            {
+                results.AddRange(Scan(key, processName, regions[i].Base, regions[i].Size, maxResults - results.Count, ct, contains));
+            }
+            catch (ProcessActionException ex) when (ex.Failure != ProcessActionFailure.Exited)
+            {
+                // One unreadable region doesn't stop the scan.
+            }
+        }
+
+        progress?.Report((regions.Count, regions.Count));
+        return results;
+    }
+
+    private static bool Readable(string protection) =>
+        protection.Length > 0 && protection != "NA" && protection != "X" && !protection.Contains("+G", StringComparison.Ordinal);
+
     private static bool Printable(byte b) => b is >= 0x20 and < 0x7F or (byte)'\t';
 
     private sealed class StopScan : Exception;
 
     /// <summary>One encoding's current run of printable characters.</summary>
-    private sealed class Run(bool unicode, List<MemoryString> results, int maxResults)
+    private sealed class Run(bool unicode, List<MemoryString> results, int maxResults, string? contains)
     {
         private readonly StringBuilder _text = new();
         private ulong _start;
@@ -127,7 +164,11 @@ internal static class MemoryStrings
         {
             if (_text.Length >= MinLength && results.Count < maxResults)
             {
-                results.Add(new MemoryString(_start, unicode, _text.ToString()));
+                var text = _text.ToString();
+                if (contains is null || text.Contains(contains, StringComparison.OrdinalIgnoreCase))
+                {
+                    results.Add(new MemoryString(_start, unicode, text));
+                }
             }
 
             _text.Clear();
