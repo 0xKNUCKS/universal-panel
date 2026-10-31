@@ -16,10 +16,17 @@ internal sealed partial class ProcessDetailsView
         var key = process.Key;
         GeneralList.ItemsSource = DescribeGeneral(process, info: null);
 
-        var info = await Task.Run(() => ProcessGeneral.Query(key));
+        var (info, extras, dotnet) = await Task.Run(() => (ProcessGeneral.Query(key), ProcessExtras.Query(key), DetectDotNet(key, process.Name)));
         if (version == _generalVersion && Target == key)
         {
-            GeneralList.ItemsSource = DescribeGeneral(process, info);
+            var rows = DescribeGeneral(process, info);
+            rows.Add(new("Protection", extras.Protection ?? Unavailable));
+            rows.Add(new("Mitigations", extras.Mitigations.Count > 0 ? string.Join(", ", extras.Mitigations) : Unavailable));
+            rows.Add(new(".NET", dotnet ?? Unavailable));
+            rows.Add(new("Privileges", extras.Privileges.Count > 0 ? string.Join("\n", extras.Privileges) : Unavailable));
+            rows.Add(new($"Environment{(extras.Environment is { } env ? $" ({env.Count})" : string.Empty)}",
+                extras.Environment is { } vars ? string.Join("\n", vars.Select(kv => $"{kv.Key}={kv.Value}")) : Unavailable));
+            GeneralList.ItemsSource = rows;
         }
     }
 
@@ -53,6 +60,22 @@ internal sealed partial class ProcessDetailsView
             new("Path", process.ImagePath ?? Unavailable),
             new("Command line", Pending(info?.CommandLine)),
         ];
+    }
+
+    /// <summary>Which .NET runtime is loaded, from the module list (null if it can't be read).</summary>
+    private static string? DetectDotNet(ProcessKey key, string name)
+    {
+        try
+        {
+            var modules = ModuleSnapshot.Capture(key, name);
+            bool core = modules.Any(m => m.Name.Equals("coreclr.dll", StringComparison.OrdinalIgnoreCase));
+            bool framework = modules.Any(m => m.Name.Equals("clr.dll", StringComparison.OrdinalIgnoreCase));
+            return core ? ".NET (CoreCLR)" : framework ? ".NET Framework (CLR)" : "Not loaded";
+        }
+        catch (ProcessActionException)
+        {
+            return null;
+        }
     }
 
     /// <summary>Same parent rule as the tree: the parent must not be newer than the child.</summary>
