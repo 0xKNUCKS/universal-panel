@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.IO;
 using UniversalPanel.Native;
 
 namespace UniversalPanel.Modules.Processes.Details;
@@ -23,10 +24,64 @@ internal sealed partial class ProcessDetailsView
             rows.Add(new("Protection", extras.Protection ?? Unavailable));
             rows.Add(new("Mitigations", extras.Mitigations.Count > 0 ? string.Join(", ", extras.Mitigations) : Unavailable));
             rows.Add(new("Platform", platform ?? Unavailable));
+            int dieRow = rows.Count;
+            rows.Add(new(DieLabel, DieScanner.IsInstalled ? "Scanning…" : "Not installed (downloaded when the panel is built)"));
             rows.Add(new("Privileges", extras.Privileges.Count > 0 ? string.Join("\n", extras.Privileges) : Unavailable));
             rows.Add(new($"Environment{(extras.Environment is { } env ? $" ({env.Count})" : string.Empty)}",
                 extras.Environment is { } vars ? string.Join("\n", vars.Select(kv => $"{kv.Key}={kv.Value}")) : Unavailable));
             GeneralList.ItemsSource = rows;
+
+            if (DieScanner.IsInstalled)
+            {
+                string die = process.ImagePath is { } image ? await DescribeDieAsync(image) : Unavailable;
+                if (version == _generalVersion && Target == key)
+                {
+                    rows[dieRow] = new(DieLabel, die);
+                    GeneralList.ItemsSource = rows.ToList();
+                }
+            }
+        }
+    }
+
+    private const string DieLabel = "Detect It Easy";
+    private readonly Dictionary<(string Path, DateTime Written), string> _dieCache = [];
+    private CancellationTokenSource? _dieCts;
+
+    /// <summary>diec's findings for the image, one per line; cached per file version.</summary>
+    private async Task<string> DescribeDieAsync(string image)
+    {
+        (string, DateTime) id;
+        try
+        {
+            id = (image, File.GetLastWriteTimeUtc(image));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return Unavailable;
+        }
+
+        if (_dieCache.TryGetValue(id, out var cached))
+        {
+            return cached;
+        }
+
+        // Switching processes abandons the previous scan instead of queueing behind it.
+        _dieCts?.Cancel();
+        var cts = _dieCts = new CancellationTokenSource();
+        try
+        {
+            var findings = await DieScanner.ScanAsync(image, cts.Token);
+            string text = findings.Count > 0 ? string.Join("\n", findings.Select(f => f.Text)) : "Nothing detected";
+            _dieCache[id] = text;
+            return text;
+        }
+        catch (DieUnavailableException ex)
+        {
+            return ex.Message;
+        }
+        catch (OperationCanceledException)
+        {
+            return Unavailable;
         }
     }
 
