@@ -20,6 +20,8 @@
           <ColumnDefinition Width="Auto" />
           <ColumnDefinition Width="Auto" />
           <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
         <ui:TextBox
           x:Name="SearchBox"
@@ -62,6 +64,41 @@
           Icon="{ui:SymbolIcon History24}"
           ToolTip="Process history (starts and exits)"
         />
+        <ui:Button
+          Grid.Column="4"
+          Width="36"
+          Height="36"
+          Margin="8,0,0,0"
+          Padding="0"
+          Appearance="Secondary"
+          Cursor="Cross"
+          Icon="{ui:SymbolIcon Target24}"
+          PreviewMouseLeftButtonDown="OnCrosshairDown"
+          PreviewMouseLeftButtonUp="OnCrosshairUp"
+          ToolTip="Find window: drag onto any window to select its process"
+        />
+        <ui:Button
+          x:Name="MoreButton"
+          Grid.Column="5"
+          Width="36"
+          Height="36"
+          Margin="8,0,0,0"
+          Padding="0"
+          Appearance="Secondary"
+          Click="OnMoreClick"
+          Icon="{ui:SymbolIcon MoreHorizontal24}"
+          ToolTip="More"
+        >
+          <ui:Button.ContextMenu>
+            <ContextMenu>
+              <MenuItem Click="OnStartSuspended" Header="Start a program suspended…">
+                <MenuItem.Icon>
+                  <ui:SymbolIcon Symbol="Pause24" />
+                </MenuItem.Icon>
+              </MenuItem>
+            </ContextMenu>
+          </ui:Button.ContextMenu>
+        </ui:Button>
       </Grid>
 
       <ui:DataGrid

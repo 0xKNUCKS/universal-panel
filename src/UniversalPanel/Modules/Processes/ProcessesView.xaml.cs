@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Threading;
@@ -86,6 +87,7 @@ internal sealed partial class ProcessesView : UserControl
 
         UpdateTree(alive);
         _latestProcesses = frame.Processes;
+        SelectPendingProcess();
         LoadingRing.Set(ListSpinner, false);
         Summary.Text = DescribeSystem(frame);
 
@@ -116,6 +118,16 @@ internal sealed partial class ProcessesView : UserControl
         }
 
         return text;
+    }
+
+    private void OnMoreClick(object sender, RoutedEventArgs e)
+    {
+        if (MoreButton.ContextMenu is { } menu)
+        {
+            menu.PlacementTarget = MoreButton;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            menu.IsOpen = true;
+        }
     }
 
     private bool MatchesFilter(object item)
