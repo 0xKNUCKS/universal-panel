@@ -18,10 +18,13 @@ public interface ISingleInstanceApp
 /// pipe (so it can show the panel) and then exits.
 /// </summary>
 /// <remarks>
-/// Hardened vs. upstream: the pipe is created with <see cref="PipeOptions.CurrentUserOnly"/>, so
-/// only processes running as the same user can connect, and the mutex lives in the per-session
-/// <c>Local\</c> namespace. The signal carries no data and the server never reads from the pipe;
-/// connecting only asks the panel to show.
+/// Hardened vs. upstream: the pipe's DACL grants only the current user's SID, so only processes
+/// running as the same user can connect, and the mutex lives in the per-session <c>Local\</c>
+/// namespace. The signal carries no data and the server never reads from the pipe; connecting only
+/// asks the panel to show.
+/// The user SID (not <see cref="PipeOptions.CurrentUserOnly"/>, which compares token owners) keeps
+/// this working across elevation: an elevated token's owner is Administrators, so a normal launch
+/// was refused by an elevated panel even though it's the same user.
 /// </remarks>
 public static class SingleInstance
 {
@@ -38,7 +41,18 @@ public static class SingleInstance
         // Pipe names can't contain the "Local\" prefix's backslash.
         string channelName = string.Concat(applicationIdentifier.Replace('\\', '_'), Delimiter, ChannelNameSuffix);
 
-        SingleInstanceMutex = new Mutex(true, applicationIdentifier, out var firstInstance);
+        bool firstInstance;
+        try
+        {
+            SingleInstanceMutex = new Mutex(true, applicationIdentifier, out firstInstance);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // It exists but was created by an elevated instance, whose default DACL keeps a normal
+            // process out. That still means "already running".
+            firstInstance = false;
+        }
+
         if (firstInstance)
         {
             _ = CreateRemoteServiceAsync(channelName);
@@ -56,12 +70,20 @@ public static class SingleInstance
 
     private static async Task CreateRemoteServiceAsync(string channelName)
     {
-        using var pipeServer = new NamedPipeServerStream(
+        var user = System.Security.Principal.WindowsIdentity.GetCurrent().User
+            ?? throw new InvalidOperationException("No user SID for the current token.");
+        var security = new PipeSecurity();
+        security.AddAccessRule(new PipeAccessRule(user, PipeAccessRights.ReadWrite, System.Security.AccessControl.AccessControlType.Allow));
+
+        using var pipeServer = NamedPipeServerStreamAcl.Create(
             channelName,
             PipeDirection.In,
             maxNumberOfServerInstances: 1,
             PipeTransmissionMode.Byte,
-            PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+            PipeOptions.Asynchronous,
+            inBufferSize: 0,
+            outBufferSize: 0,
+            security);
         while (true)
         {
             await pipeServer.WaitForConnectionAsync();
@@ -78,14 +100,15 @@ public static class SingleInstance
     {
         try
         {
-            using var pipeClient = new NamedPipeClientStream(
-                ".", channelName, PipeDirection.Out, PipeOptions.CurrentUserOnly);
+            // No CurrentUserOnly here (see remarks); the server's DACL is what restricts access,
+            // and the client sends nothing, so even a spoofed server would learn nothing.
+            using var pipeClient = new NamedPipeClientStream(".", channelName, PipeDirection.Out);
             pipeClient.Connect(1000);
         }
         catch (Exception ex) when (ex is TimeoutException or UnauthorizedAccessException or IOException)
         {
-            // First instance is starting/stopping, or its pipe is owned by another user (rejected
-            // by CurrentUserOnly). Either way there's nothing safe to signal.
+            // First instance is starting/stopping, or the pipe belongs to another user (rejected by
+            // its DACL). Either way there's nothing safe to signal.
         }
     }
 
