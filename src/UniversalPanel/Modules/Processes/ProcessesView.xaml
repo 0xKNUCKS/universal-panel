@@ -205,20 +205,24 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                   </Grid.ColumnDefinitions>
-                  <ui:Button
+                  <!--  A plain hit area, not a ui:Button: every visible row creates one, and a
+                        button's template made rebuilding the visible rows several times slower.  -->
+                  <Border
                     Grid.Column="0"
                     Width="18"
                     Height="18"
                     Margin="0,0,2,0"
-                    Padding="0"
-                    Appearance="Transparent"
-                    BorderThickness="0"
-                    Click="OnExpanderClick"
-                    Focusable="False"
+                    Background="Transparent"
+                    MouseLeftButtonDown="OnExpanderMouseDown"
                     Visibility="{Binding ExpanderVisibility}"
                   >
-                    <ui:SymbolIcon FontSize="11" Symbol="{Binding ExpanderSymbol}" />
-                  </ui:Button>
+                    <ui:SymbolIcon
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"
+                      FontSize="11"
+                      Symbol="{Binding ExpanderSymbol}"
+                    />
+                  </Border>
                   <Image
                     Grid.Column="1"
                     Width="16"

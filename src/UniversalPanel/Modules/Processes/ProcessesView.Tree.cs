@@ -76,6 +76,33 @@ internal sealed partial class ProcessesView
         Relayout();
     }
 
+    // Live filtering hides / shows rows one by one: ~2.3 ms each, so cheap for a small subtree
+    // but ~520 ms for wininit's 224 rows. Above this, one deferred refresh is cheaper: it costs
+    // ~250 ms whatever the subtree size (rebuilding the ~30 visible DataGrid rows, ~4-8 ms each).
+    private const int RefreshAboveRows = 60;
+
+    /// <summary>Expand / collapse re-layout: live filtering for small subtrees, one refresh for big ones.</summary>
+    private void RelayoutForToggle(ProcessRow row)
+    {
+        if (SubtreeSize(row) <= RefreshAboveRows)
+        {
+            Relayout();
+            return;
+        }
+
+        using (_view.DeferRefresh())
+        {
+            Relayout();
+        }
+    }
+
+    /// <summary>Rows under <paramref name="row"/>: everything after it in tree order until depth returns to its level.</summary>
+    private int SubtreeSize(ProcessRow row)
+    {
+        int end = _rows.Where(r => r.TreeOrder > row.TreeOrder && r.Depth <= row.Depth).Select(r => r.TreeOrder).DefaultIfEmpty(int.MaxValue).Min();
+        return _rows.Count(r => r.TreeOrder > row.TreeOrder && r.TreeOrder < end);
+    }
+
     private int CompareSiblings(ProcessRow a, ProcessRow b)
     {
         int result = _sortPath switch
@@ -129,7 +156,7 @@ internal sealed partial class ProcessesView
         Settings.SaveSoon();
     }
 
-    private void OnExpanderClick(object sender, RoutedEventArgs e)
+    private void OnExpanderMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (sender is FrameworkElement { DataContext: ProcessRow row })
         {
@@ -155,20 +182,7 @@ internal sealed partial class ProcessesView
         }
 
         row.SetExpanded(expanded);
-        RelayoutAtOnce();
-    }
-
-    /// <summary>
-    /// Re-lays out for an expand / collapse with live sorting paused. Only IsHiddenByCollapse
-    /// changes (TreeOrder covers hidden rows too), but each row live filtering removes from a
-    /// live-sorted view also updated the sort bookkeeping: collapsing a 223-row subtree took
-    /// ~520 ms, ~24 ms this way. Rows re-added on expand still go in sorted position.
-    /// </summary>
-    private void RelayoutAtOnce()
-    {
-        _view.IsLiveSorting = false;
-        Relayout();
-        _view.IsLiveSorting = true;
+        RelayoutForToggle(row);
     }
 
     /// <summary>Right expands; Left collapses, or moves to the parent when already collapsed.</summary>
