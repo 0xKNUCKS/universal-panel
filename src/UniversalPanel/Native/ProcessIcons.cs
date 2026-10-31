@@ -3,7 +3,9 @@
 // stock application icon for processes that have no icon (or no readable path).
 // https://github.com/winsiderss/systeminformer @ c2f1489890f14de76b985c0142cbad154d92623d
 // Extraction uses the documented SHDefExtractIcon / SHGetStockIconInfo instead of System Informer's
-// own PE resource reader.
+// own PE resource reader. Callers that draw icons large (Tools tiles) ask for a size: the icon is
+// then extracted at that size in device pixels, so Windows picks the best image in the file
+// instead of the small one being stretched.
 
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -26,28 +28,37 @@ internal static class ProcessIcons
     /// Frozen (thread-safe) small icon for an executable, or the generic application icon.
     /// Safe to call from any thread; each path is extracted once.
     /// </summary>
-    public static ImageSource? Get(string? path)
+    /// <param name="sizeDip">Size it will be drawn at (device-independent pixels); 0 = the system small icon.</param>
+    public static ImageSource? Get(string? path, int sizeDip = 0)
     {
         if (string.IsNullOrEmpty(path))
         {
             return Fallback();
         }
 
+        int size = sizeDip > 0 ? ToDevicePixels(sizeDip) : SmallIconSize();
+        string key = $"{path}|{size}";
         lock (Gate)
         {
-            if (Cache.TryGetValue(path, out var cached))
+            if (Cache.TryGetValue(key, out var cached))
             {
                 return cached ?? Fallback();
             }
         }
 
-        var icon = Extract(path);
+        var icon = Extract(path, size);
         lock (Gate)
         {
-            Cache[path] = icon;
+            Cache[key] = icon;
         }
 
         return icon ?? Fallback();
+    }
+
+    private static int ToDevicePixels(int dip)
+    {
+        uint dpi = OperatingSystem.IsWindowsVersionAtLeast(10, 0, 14393) ? PInvoke.GetDpiForSystem() : 96;
+        return Math.Clamp((int)Math.Round(dip * dpi / 96.0), 16, 256);
     }
 
     private static int SmallIconSize() =>
@@ -55,9 +66,8 @@ internal static class ProcessIcons
             ? PInvoke.GetSystemMetricsForDpi(SYSTEM_METRICS_INDEX.SM_CXSMICON, PInvoke.GetDpiForSystem())
             : PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CXSMICON);
 
-    private static unsafe BitmapSource? Extract(string path)
+    private static unsafe BitmapSource? Extract(string path, int size)
     {
-        int size = SmallIconSize();
         // nIconSize: LOWORD = large size, HIWORD = small size. Both handles destroy their icon on dispose.
         var hr = PInvoke.SHDefExtractIcon(path, 0, 0, out var large, out var small, (uint)((size << 16) | size));
         using (large)
