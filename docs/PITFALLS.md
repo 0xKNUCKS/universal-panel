@@ -76,4 +76,4 @@ Known traps for this kind of app. Check the relevant section before implementing
 - WPF-UI implicit styles: an App.xaml style with `BasedOn="{StaticResource {x:Type ToolTip}}"`
   (same key as itself) resolves lazily, finds itself instead of WPF-UI's style and silently falls
   back to the default light control. Extend WPF-UI styles in code from the found `Style` object
-  (see `App.FixToolTipAlignment`), and check against the real compiled App, not `XamlReader.Parse`.
+  (see `App.ExtendToolTipStyle`), and check against the real compiled App, not `XamlReader.Parse`.

@@ -55,7 +55,7 @@ public partial class App : Application, ISingleInstanceApp
             var app = new App();
             ErrorReporter.InstallGlobalHandlers(app);
             app.InitializeComponent();
-            FixToolTipAlignment(app);
+            ExtendToolTipStyle(app);
             app.Run();
         }
         catch (Exception ex)
@@ -77,17 +77,20 @@ public partial class App : Application, ISingleInstanceApp
     }
 
     /// <summary>
-    /// WPF-UI justifies tooltip text (Controls/ToolTip/ToolTip.xaml), stretching the spaces on every
-    /// wrapped line. Done in code on purpose: an implicit XAML style with
+    /// WPF-UI's tooltip (Controls/ToolTip/ToolTip.xaml) justifies text, stretching the spaces on every
+    /// wrapped line, and caps the width at 260, which wraps most paths. Left-align and allow 640
+    /// (a typical path fits on one line; long text still wraps). Done in code on purpose: an
+    /// implicit XAML style with
     /// BasedOn="{StaticResource {x:Type ToolTip}}" in App.xaml resolves lazily, finds itself instead
     /// of WPF-UI's style, and silently falls back to the default light tooltip.
     /// </summary>
-    private static void FixToolTipAlignment(Application app)
+    private static void ExtendToolTipStyle(Application app)
     {
         if (app.TryFindResource(typeof(System.Windows.Controls.ToolTip)) is Style wpfUi)
         {
             var style = new Style(typeof(System.Windows.Controls.ToolTip), wpfUi);
             style.Setters.Add(new Setter(System.Windows.Controls.TextBlock.TextAlignmentProperty, TextAlignment.Left));
+            style.Setters.Add(new Setter(FrameworkElement.MaxWidthProperty, 640.0));
             style.Seal();
             app.Resources[typeof(System.Windows.Controls.ToolTip)] = style;
         }

@@ -11,7 +11,7 @@
         <ui:ThemesDictionary Theme="Dark" />
         <ui:ControlsDictionary />
       </ResourceDictionary.MergedDictionaries>
-      <!-- The ToolTip style is extended in code: see App.FixToolTipAlignment. -->
+      <!-- The ToolTip style is extended in code: see App.ExtendToolTipStyle. -->
     </ResourceDictionary>
   </Application.Resources>
 </Application>
