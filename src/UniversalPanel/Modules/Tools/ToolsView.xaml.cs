@@ -672,7 +672,8 @@ internal sealed partial class ToolsView : UserControl
         _foundShown.Clear();
         foreach (var found in _found
             .Where(f => f.Tool.Matches(query) && (_findCategory is null || f.Tool.Categories.Contains(_findCategory)))
-            .OrderBy(f => f.Tool.Name, StringComparer.CurrentCultureIgnoreCase))
+            .OrderBy(f => !f.CanAdd) // new ones first, already-added ones below
+            .ThenBy(f => f.Tool.Name, StringComparer.CurrentCultureIgnoreCase))
         {
             _foundShown.Add(found);
         }

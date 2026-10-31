@@ -15,6 +15,9 @@ internal sealed class FoundTool(ToolRow tool, bool alreadyAdded) : INotifyProper
 
     public string? Note => CanAdd ? null : "Already added";
 
+    /// <summary>Tools already in the list are greyed out (and can't be checked).</summary>
+    public double Opacity => CanAdd ? Tool.Opacity : 0.45;
+
     public bool IsChecked
     {
         get => _isChecked;

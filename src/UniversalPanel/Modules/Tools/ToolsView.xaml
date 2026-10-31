@@ -115,7 +115,7 @@
 
     <!-- The row layout used by the Find list. -->
     <DataTemplate x:Key="FoundTemplate">
-      <Grid Opacity="{Binding Tool.Opacity}">
+      <Grid Opacity="{Binding Opacity}">
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="Auto" />
           <ColumnDefinition Width="Auto" />
