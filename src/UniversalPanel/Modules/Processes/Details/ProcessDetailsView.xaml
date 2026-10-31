@@ -361,108 +361,201 @@
 
       <TabItem x:Name="MemoryTab" Header="Memory">
         <Grid Margin="0,8,0,0">
-          <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-          </Grid.RowDefinitions>
-          <StackPanel Grid.Row="0" Orientation="Horizontal">
-            <CheckBox
-              x:Name="OnlySuspicious"
-              Checked="OnMemoryFilterChanged"
-              Content="Only suspicious"
-              ToolTip="Executable memory with no image file behind it, or RWX"
-              Unchecked="OnMemoryFilterChanged"
-            />
-            <CheckBox
-              x:Name="ShowReserved"
-              Margin="16,0,0,0"
-              Checked="OnMemoryFilterChanged"
-              Content="Show reserved"
-              Unchecked="OnMemoryFilterChanged"
-            />
-          </StackPanel>
-          <ui:DataGrid
-            x:Name="MemoryGrid"
-            Grid.Row="1"
-            Margin="0,8,0,0"
-            AutoGenerateColumns="False"
-            CanUserAddRows="False"
-            CanUserDeleteRows="False"
-            CanUserReorderColumns="False"
-            CanUserResizeRows="False"
-            ContextMenuOpening="OnMemoryContextMenuOpening"
-            EnableRowVirtualization="True"
-            FontSize="13"
-            GridLinesVisibility="None"
-            HeadersVisibility="Column"
-            IsReadOnly="True"
-            PreviewMouseRightButtonDown="OnMemoryRightButtonDown"
-            RowHeight="28"
-            SelectionMode="Single"
-            TextColumnElementStyle="{StaticResource CellText}"
-            VirtualizingPanel.IsVirtualizing="True"
-            VirtualizingPanel.VirtualizationMode="Recycling"
-          >
-            <ui:DataGrid.RowStyle>
-              <Style BasedOn="{StaticResource DetailRow}" TargetType="DataGridRow">
-                <Style.Triggers>
-                  <DataTrigger Binding="{Binding Suspicious}" Value="True">
-                    <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCautionBrush}" />
-                  </DataTrigger>
-                </Style.Triggers>
-              </Style>
-            </ui:DataGrid.RowStyle>
-            <ui:DataGrid.ContextMenu>
-              <ContextMenu>
-                <MenuItem x:Name="DumpRegionItem" Click="OnDumpRegion" Header="Save region to file">
+          <Grid x:Name="MemoryListPanel">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="*" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <StackPanel Grid.Row="0" Orientation="Horizontal">
+              <CheckBox
+                x:Name="OnlySuspicious"
+                Checked="OnMemoryFilterChanged"
+                Content="Only suspicious"
+                ToolTip="Executable memory with no image file behind it, or RWX"
+                Unchecked="OnMemoryFilterChanged"
+              />
+              <CheckBox
+                x:Name="ShowReserved"
+                Margin="16,0,0,0"
+                Checked="OnMemoryFilterChanged"
+                Content="Show reserved"
+                Unchecked="OnMemoryFilterChanged"
+              />
+            </StackPanel>
+            <ui:DataGrid
+              x:Name="MemoryGrid"
+              Grid.Row="1"
+              Margin="0,8,0,0"
+              AutoGenerateColumns="False"
+              CanUserAddRows="False"
+              CanUserDeleteRows="False"
+              CanUserReorderColumns="False"
+              CanUserResizeRows="False"
+              ContextMenuOpening="OnMemoryContextMenuOpening"
+              EnableRowVirtualization="True"
+              FontSize="13"
+              GridLinesVisibility="None"
+              HeadersVisibility="Column"
+              IsReadOnly="True"
+              PreviewMouseRightButtonDown="OnMemoryRightButtonDown"
+              RowHeight="28"
+              SelectionMode="Single"
+              TextColumnElementStyle="{StaticResource CellText}"
+              VirtualizingPanel.IsVirtualizing="True"
+              VirtualizingPanel.VirtualizationMode="Recycling"
+            >
+              <ui:DataGrid.RowStyle>
+                <Style BasedOn="{StaticResource DetailRow}" TargetType="DataGridRow">
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding Suspicious}" Value="True">
+                      <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCautionBrush}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </ui:DataGrid.RowStyle>
+              <ui:DataGrid.ContextMenu>
+                <ContextMenu>
+                  <MenuItem x:Name="DumpRegionItem" Click="OnDumpRegion" Header="Save region to file">
+                    <MenuItem.Icon>
+                      <ui:SymbolIcon Symbol="Save24" />
+                    </MenuItem.Icon>
+                  </MenuItem>
+                  <MenuItem x:Name="StringsItem" Click="OnFindStrings" Header="Find strings">
                   <MenuItem.Icon>
-                    <ui:SymbolIcon Symbol="Save24" />
+                    <ui:SymbolIcon Symbol="TextQuote24" />
                   </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem Click="OnCopyRegionAddress" Header="Copy address">
-                  <MenuItem.Icon>
-                    <ui:SymbolIcon Symbol="Copy24" />
-                  </MenuItem.Icon>
-                </MenuItem>
-              </ContextMenu>
-            </ui:DataGrid.ContextMenu>
-            <ui:DataGrid.Columns>
-              <DataGridTextColumn Width="128" Binding="{Binding BaseText}" Header="Base" SortMemberPath="Base" />
-              <DataGridTextColumn Width="78" Binding="{Binding SizeText}" Header="Size" SortMemberPath="Size" />
-              <DataGridTextColumn Width="58" Binding="{Binding Protection}" Header="Prot" SortMemberPath="Protection" />
-              <DataGridTextColumn Width="62" Binding="{Binding Type}" Header="Type" SortMemberPath="Type" />
-              <DataGridTextColumn Width="*" Binding="{Binding Use}" Header="Use" SortMemberPath="Use" />
-            </ui:DataGrid.Columns>
-          </ui:DataGrid>
-          <!--  Holds a ProgressRing only while loading (see LoadingRing).  -->
-          <ContentControl
-            x:Name="MemorySpinner"
-            Grid.Row="1"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            Focusable="False"
-            IsHitTestVisible="False"
-          />
-          <Grid Grid.Row="2" Margin="2,8,0,0">
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="*" />
-              <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <ui:TextBlock
-              x:Name="MemorySummary"
+                    <MenuItem.Icon>
+                      <ui:SymbolIcon Symbol="Copy24" />
+                    </MenuItem.Icon>
+                  </MenuItem>
+                </ContextMenu>
+              </ui:DataGrid.ContextMenu>
+              <ui:DataGrid.Columns>
+                <DataGridTextColumn Width="128" Binding="{Binding BaseText}" Header="Base" SortMemberPath="Base" />
+                <DataGridTextColumn Width="78" Binding="{Binding SizeText}" Header="Size" SortMemberPath="Size" />
+                <DataGridTextColumn Width="58" Binding="{Binding Protection}" Header="Prot" SortMemberPath="Protection" />
+                <DataGridTextColumn Width="62" Binding="{Binding Type}" Header="Type" SortMemberPath="Type" />
+                <DataGridTextColumn Width="*" Binding="{Binding Use}" Header="Use" SortMemberPath="Use" />
+              </ui:DataGrid.Columns>
+            </ui:DataGrid>
+            <!--  Holds a ProgressRing only while loading (see LoadingRing).  -->
+            <ContentControl
+              x:Name="MemorySpinner"
+              Grid.Row="1"
+              HorizontalAlignment="Center"
               VerticalAlignment="Center"
+              Focusable="False"
+              IsHitTestVisible="False"
+            />
+            <Grid Grid.Row="2" Margin="2,8,0,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <ui:TextBlock
+                x:Name="MemorySummary"
+                VerticalAlignment="Center"
+                Appearance="Secondary"
+                FontTypography="Caption"
+                TextWrapping="Wrap"
+              />
+              <ui:Button
+                Grid.Column="1"
+                Padding="8,4"
+                Appearance="Transparent"
+                Click="OnRefreshMemory"
+                Content="Refresh"
+                Icon="{ui:SymbolIcon ArrowClockwise24}"
+              />
+            </Grid>
+                  </Grid>
+
+          <Grid x:Name="StringsPanel" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="*" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <StackPanel Grid.Row="0" Orientation="Horizontal">
+              <ui:Button
+                Width="32"
+                Height="32"
+                Margin="0,0,8,0"
+                Padding="0"
+                Appearance="Transparent"
+                Click="OnStringsBack"
+                Icon="{ui:SymbolIcon ArrowLeft24}"
+                ToolTip="Back to regions"
+              />
+              <ui:TextBlock x:Name="StringsTitle" VerticalAlignment="Center" FontTypography="BodyStrong" />
+            </StackPanel>
+            <ui:TextBox
+              x:Name="StringSearch"
+              Grid.Row="1"
+              Margin="0,8,0,0"
+              ClearButtonEnabled="True"
+              Icon="{ui:SymbolIcon Search24}"
+              PlaceholderText="Filter strings"
+              TextChanged="OnStringFilterChanged"
+            />
+            <ui:DataGrid
+              x:Name="StringsGrid"
+              Grid.Row="2"
+              Margin="0,8,0,0"
+              AutoGenerateColumns="False"
+              CanUserAddRows="False"
+              CanUserDeleteRows="False"
+              CanUserReorderColumns="False"
+              CanUserResizeRows="False"
+              ContextMenuOpening="OnStringsContextMenuOpening"
+              EnableRowVirtualization="True"
+              FontSize="13"
+              GridLinesVisibility="None"
+              HeadersVisibility="Column"
+              IsReadOnly="True"
+              PreviewMouseRightButtonDown="OnStringsRightButtonDown"
+              RowHeight="28"
+              RowStyle="{StaticResource DefaultDataGridRowStyle}"
+              SelectionMode="Single"
+              TextColumnElementStyle="{StaticResource CellText}"
+              VirtualizingPanel.IsVirtualizing="True"
+              VirtualizingPanel.VirtualizationMode="Recycling"
+            >
+              <ui:DataGrid.ContextMenu>
+                <ContextMenu>
+                  <MenuItem Click="OnCopyString" Header="Copy string">
+                    <MenuItem.Icon>
+                      <ui:SymbolIcon Symbol="Copy24" />
+                    </MenuItem.Icon>
+                  </MenuItem>
+                  <MenuItem Click="OnCopyStringAddress" Header="Copy address" />
+                </ContextMenu>
+              </ui:DataGrid.ContextMenu>
+              <ui:DataGrid.Columns>
+                <DataGridTextColumn Width="128" Binding="{Binding AddressText}" Header="Address" SortMemberPath="Source.Address" />
+                <DataGridTextColumn Width="62" Binding="{Binding Encoding}" Header="Enc" SortMemberPath="Encoding" />
+                <DataGridTextColumn Width="*" Binding="{Binding Text}" Header="String" SortMemberPath="Text" />
+              </ui:DataGrid.Columns>
+            </ui:DataGrid>
+            <ContentControl
+              x:Name="StringsSpinner"
+              Grid.Row="2"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              Focusable="False"
+              IsHitTestVisible="False"
+            />
+            <ui:TextBlock
+              x:Name="StringsSummary"
+              Grid.Row="3"
+              Margin="2,8,0,0"
               Appearance="Secondary"
               FontTypography="Caption"
-              TextWrapping="Wrap"
-            />
-            <ui:Button
-              Grid.Column="1"
-              Padding="8,4"
-              Appearance="Transparent"
-              Click="OnRefreshMemory"
-              Content="Refresh"
-              Icon="{ui:SymbolIcon ArrowClockwise24}"
+              TextTrimming="CharacterEllipsis"
             />
           </Grid>
         </Grid>

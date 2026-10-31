@@ -35,6 +35,7 @@ internal sealed partial class ProcessDetailsView
 
     private void ResetMemory()
     {
+        CloseStrings();
         _memoryLoadedFor = null;
         _memoryLoadVersion++;
         _memory.Clear();
@@ -133,6 +134,7 @@ internal sealed partial class ProcessDetailsView
         }
 
         DumpRegionItem.IsEnabled = region.Committed;
+        StringsItem.IsEnabled = region.Committed;
     }
 
     private void OnCopyRegionAddress(object sender, RoutedEventArgs e)
