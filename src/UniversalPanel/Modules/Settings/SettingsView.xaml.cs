@@ -37,6 +37,7 @@ internal sealed partial class SettingsView : UserControl
             Select(StartupBox, Settings.StartWithWindows);
             Select(RefreshBox, Settings.ProcessRefreshSeconds.ToString(CultureInfo.InvariantCulture));
             FillMonitors();
+            HideOutsideToggle.IsChecked = Settings.HideOnClickOutside;
         }
         finally
         {
@@ -130,6 +131,15 @@ internal sealed partial class SettingsView : UserControl
         finally
         {
             StartupBox.IsEnabled = true;
+        }
+    }
+
+    private void OnHideOutsideChanged(object sender, RoutedEventArgs e)
+    {
+        if (!_loading && HideOutsideToggle.IsChecked is bool on && on != Settings.HideOnClickOutside)
+        {
+            Settings.HideOnClickOutside = on;
+            Settings.SaveSoon();
         }
     }
 

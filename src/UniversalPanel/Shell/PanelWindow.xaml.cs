@@ -167,7 +167,7 @@ public partial class PanelWindow : FluentWindow, IModuleHost
     protected override void OnDeactivated(EventArgs e)
     {
         base.OnDeactivated(e);
-        if (_autoHideSuppressions == 0)
+        if (_settings.HideOnClickOutside && _autoHideSuppressions == 0)
         {
             HidePanel();
         }

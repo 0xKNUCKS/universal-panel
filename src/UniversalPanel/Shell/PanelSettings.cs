@@ -28,6 +28,10 @@ internal sealed class PanelSettings
 
     public double PanelWidth { get; set; } = DefaultWidth;
 
+    /// <summary>Hide the panel when it loses focus (a click outside it). Off: only the hotkey, Esc
+    /// or the hide button close it.</summary>
+    public bool HideOnClickOutside { get; set; } = true;
+
     /// <summary>Where the hotkey shows the panel: "Cursor", "Primary" or a display device name.</summary>
     public string PanelMonitor { get; set; } = Native.MonitorPlacement.UnderCursor;
 

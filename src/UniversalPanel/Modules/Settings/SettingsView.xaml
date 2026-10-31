@@ -58,6 +58,16 @@
         </ComboBox>
       </ui:CardControl>
 
+      <ui:CardControl Margin="0,0,0,8" Icon="{ui:SymbolIcon CursorClick24}">
+        <ui:CardControl.Header>
+          <StackPanel>
+            <ui:TextBlock Style="{StaticResource Title}" Text="Close when clicking outside" />
+            <ui:TextBlock Style="{StaticResource Hint}" Text="Off: the panel stays open until you press the hotkey, Esc or the hide button." />
+          </StackPanel>
+        </ui:CardControl.Header>
+        <ui:ToggleSwitch x:Name="HideOutsideToggle" Checked="OnHideOutsideChanged" Unchecked="OnHideOutsideChanged" />
+      </ui:CardControl>
+
       <ui:CardControl Margin="0,0,0,8" Icon="{ui:SymbolIcon Desktop24}">
         <ui:CardControl.Header>
           <StackPanel>
