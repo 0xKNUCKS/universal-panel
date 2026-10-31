@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -7,6 +7,7 @@ using H.NotifyIcon;
 using H.NotifyIcon.Core;
 using UniversalPanel.Diagnostics;
 using UniversalPanel.Modules;
+using UniversalPanel.Native;
 using UniversalPanel.Modules.Processes;
 using UniversalPanel.Shell;
 using Windows.Win32;
@@ -34,6 +35,13 @@ public partial class App : Application, ISingleInstanceApp
         bool firstInstance = false;
         try
         {
+            // A "Restart as administrator" copy waits for the old instance to release the lock.
+            Elevation.WaitForReplacedInstance(Environment.GetCommandLineArgs());
+            if (Elevation.IsElevated)
+            {
+                Log.Info("App", Elevation.TryEnableDebugPrivilege() ? "Elevated; SeDebugPrivilege enabled." : "Elevated; SeDebugPrivilege not available.");
+            }
+
             firstInstance = SingleInstance.InitializeAsFirstInstance();
             if (!firstInstance)
             {
@@ -95,12 +103,17 @@ public partial class App : Application, ISingleInstanceApp
         var menu = new ContextMenu();
         menu.Items.Add(CreateMenuItem("Show panel", () => _panel?.ShowPanel()));
         menu.Items.Add(CreateMenuItem("Open log folder", OpenLogFolder));
+        if (!Elevation.IsElevated)
+        {
+            menu.Items.Add(CreateMenuItem("Restart as administrator", RestartElevated));
+        }
+
         menu.Items.Add(new Separator());
         menu.Items.Add(CreateMenuItem("Exit", Shutdown));
 
         var tray = new TaskbarIcon
         {
-            ToolTipText = $"Universal Panel ({HotkeyService.DefaultToggleGesture.DisplayString})",
+            ToolTipText = $"Universal Panel ({HotkeyService.DefaultToggleGesture.DisplayString})" + (Elevation.IsElevated ? " (Administrator)" : string.Empty),
             IconSource = new GeneratedIconSource
             {
                 Text = "U",
@@ -125,6 +138,16 @@ public partial class App : Application, ISingleInstanceApp
         var item = new MenuItem { Header = header };
         item.Click += (_, _) => Guard.Run($"Tray.{header}", action);
         return item;
+    }
+
+    /// <summary>UAC prompt; on success this instance exits and the elevated copy takes over.</summary>
+    private void RestartElevated()
+    {
+        if (Elevation.TryRestartElevated())
+        {
+            Log.Info("App", "Restarting elevated.");
+            Shutdown();
+        }
     }
 
     private static void OpenLogFolder()

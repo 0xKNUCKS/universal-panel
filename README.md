@@ -27,6 +27,7 @@ Without elevation, actions on other users' and protected processes fail with "ac
 | Process tree | Click the arrow, or `Right` / `Left` to expand / collapse (`Left` again jumps to the parent). Header clicks sort children within each parent; a third click returns to creation order. Typing a filter shows a flat list. The button next to the filter switches tree / flat |
 | Process details | Double-click or `Enter` on a process; `Backspace` or the back button returns. Right-click threads and handles for their actions |
 | Logs / exit | Right-click the tray icon |
+| Administrator | Tray > Restart as administrator (UAC prompt). Elevated, the panel enables SeDebugPrivilege so services and other users' processes can be inspected and managed |
 
 Logs: `%LOCALAPPDATA%\UniversalPanel\logs`.
 
