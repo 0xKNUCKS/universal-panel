@@ -83,6 +83,7 @@ internal sealed partial class ProcessesView : UserControl
         }
 
         UpdateTree(alive);
+        _latestProcesses = frame.Processes;
         LoadingRing.Set(ListSpinner, false);
         Summary.Text = DescribeSystem(frame);
 
