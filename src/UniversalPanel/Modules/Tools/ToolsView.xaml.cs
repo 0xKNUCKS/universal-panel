@@ -342,7 +342,31 @@ internal sealed partial class ToolsView : UserControl
 
     // ---- managing the list -------------------------------------------------------------------
 
+    // Add opens a small menu: pick a program yourself, or let the panel find installed ones.
     private void OnAddClick(object sender, RoutedEventArgs e)
+    {
+        if (AddButton.ContextMenu is { } menu)
+        {
+            menu.PlacementTarget = AddButton;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            menu.IsOpen = true;
+        }
+    }
+
+    /// <summary>A click on empty space (not a tile, scrollbar or section header) clears the selection.</summary>
+    private void OnListPreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        var source = e.OriginalSource as DependencyObject;
+        if (sender is ListBox list
+            && !IsInside<ListBoxItem>(source)
+            && !IsInside<System.Windows.Controls.Primitives.ScrollBar>(source)
+            && !IsInside<System.Windows.Controls.Primitives.ButtonBase>(source))
+        {
+            list.UnselectAll();
+        }
+    }
+
+    private void OnAddManually(object sender, RoutedEventArgs e)
     {
         if (PickFile("Add a tool", "Programs and scripts (*.exe;*.bat;*.cmd)|*.exe;*.bat;*.cmd", Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)) is { } path)
         {
@@ -587,18 +611,32 @@ internal sealed partial class ToolsView : UserControl
     private readonly ObservableCollection<FoundTool> _foundShown = [];
     private string? _findCategory;
 
+    // The finder opens first, empty, with its own spinner; results fill in when the scan is done.
     private async void OnFindClick(object sender, RoutedEventArgs e)
     {
-        FindButton.IsEnabled = false;
-        await LoadingRing.ShowAsync(Spinner);
+        _found.Clear();
+        _foundShown.Clear();
+        _findCategory = null;
+        FindSearchBox.Text = string.Empty;
+        FindChips.ItemsSource = null;
+        FindTitle.Text = "Looking for installed tools…";
+        FoundList.ItemsSource = _foundShown;
+        UpdateAddFound();
+        ShowPage(FindPage);
+        await LoadingRing.ShowAsync(FindSpinner);
         try
         {
             await Guard.RunAsync("Tools.Find", async () =>
             {
                 var paths = await Task.Run(() => ToolFinder.Find(CancellationToken.None));
+                if (FindPage.Visibility != Visibility.Visible)
+                {
+                    return; // closed while scanning
+                }
+
                 if (paths.Count == 0)
                 {
-                    _host.ShowNotice("No tools found", "Looked in Program Files, Documents, Desktop and Downloads. Use Add for anything else.", InfoBarSeverity.Informational);
+                    FindTitle.Text = "No known tools found. Use Add a program… for anything else.";
                     return;
                 }
 
@@ -614,22 +652,17 @@ internal sealed partial class ToolsView : UserControl
                     _found.Add(found);
                 }
 
-                _findCategory = null;
-                FindSearchBox.Text = string.Empty;
                 int fresh = _found.Count(f => f.CanAdd);
                 FindTitle.Text = $"Found {paths.Count} tool{(paths.Count == 1 ? string.Empty : "s")}, {fresh} not in your list";
                 FindChips.ItemsSource = new[] { AllChip }.Concat(_found.SelectMany(f => f.Tool.Categories).Distinct().OrderBy(ToolCategories.Order)).ToList();
                 FindChips.SelectedItem = AllChip;
-                FoundList.ItemsSource = _foundShown;
                 ShowFound();
                 UpdateAddFound();
-                ShowPage(FindPage);
             });
         }
         finally
         {
-            LoadingRing.Set(Spinner, false);
-            FindButton.IsEnabled = true;
+            LoadingRing.Set(FindSpinner, false);
         }
     }
 

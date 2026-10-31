@@ -82,7 +82,13 @@
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="ListBox">
-            <ScrollViewer Focusable="False" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <!-- A background so empty space takes clicks (they clear the selection). -->
+            <ScrollViewer
+              Background="{TemplateBinding Background}"
+              Focusable="False"
+              HorizontalScrollBarVisibility="Disabled"
+              VerticalScrollBarVisibility="Auto"
+            >
               <ItemsPresenter />
             </ScrollViewer>
           </ControlTemplate>
@@ -179,24 +185,22 @@
           Icon="{ui:SymbolIcon GroupList24}"
         />
         <ui:Button
+          x:Name="AddButton"
           Grid.Column="2"
           Margin="4,0,0,0"
           Padding="8,6"
           Appearance="Secondary"
           Click="OnAddClick"
           Icon="{ui:SymbolIcon Add24}"
-          ToolTip="Add a program or script"
-        />
-        <ui:Button
-          x:Name="FindButton"
-          Grid.Column="3"
-          Margin="4,0,0,0"
-          Padding="8,6"
-          Appearance="Secondary"
-          Click="OnFindClick"
-          Icon="{ui:SymbolIcon ScanObject24}"
-          ToolTip="Find installed tools (IDA, Ghidra, x64dbg, DIE, ...) and pick which to add"
-        />
+          ToolTip="Add tools"
+        >
+          <ui:Button.ContextMenu>
+            <ContextMenu>
+              <MenuItem Click="OnAddManually" Header="Add a program…" />
+              <MenuItem Click="OnFindClick" Header="Find installed tools" />
+            </ContextMenu>
+          </ui:Button.ContextMenu>
+        </ui:Button>
       </Grid>
 
       <ListBox
@@ -212,6 +216,7 @@
         Grid.Row="2"
         ContextMenuOpening="OnContextMenuOpening"
         KeyDown="OnListKeyDown"
+        PreviewMouseLeftButtonDown="OnListPreviewMouseDown"
         SelectionMode="Extended"
         Style="{StaticResource BareList}"
       >
@@ -385,6 +390,7 @@
         x:Name="FoundList"
         Grid.Row="3"
         ItemTemplate="{StaticResource FoundTemplate}"
+        PreviewMouseLeftButtonDown="OnListPreviewMouseDown"
         SelectionMode="Single"
         Style="{StaticResource BareList}"
       >
@@ -395,6 +401,7 @@
           </Style>
         </ListBox.ItemContainerStyle>
       </ListBox>
+      <ContentControl x:Name="FindSpinner" Grid.Row="3" HorizontalAlignment="Center" VerticalAlignment="Center" />
     </Grid>
 
     <!-- ===== Edit page ===== -->
