@@ -137,6 +137,28 @@ internal sealed partial class ProcessDetailsView
         StringsItem.IsEnabled = region.Committed;
     }
 
+    private void OnMemoryDumpClick(object sender, RoutedEventArgs e)
+    {
+        if (MemoryDumpButton.ContextMenu is { } menu)
+        {
+            menu.PlacementTarget = MemoryDumpButton;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            menu.IsOpen = true;
+        }
+    }
+
+    private void OnMemoryFullDump(object sender, RoutedEventArgs e) => StartDump(DumpKind.Full);
+
+    private void OnMemoryMiniDump(object sender, RoutedEventArgs e) => StartDump(DumpKind.Mini);
+
+    private void StartDump(DumpKind kind)
+    {
+        if (Target is { } target)
+        {
+            _ = Guard.RunAsync("Details.Dump", () => DumpCommand.RunAsync(Host, this, target, TargetName, kind));
+        }
+    }
+
     private void OnCopyRegionAddress(object sender, RoutedEventArgs e)
     {
         if (SelectedRegion is { } region)

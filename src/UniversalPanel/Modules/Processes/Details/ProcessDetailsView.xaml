@@ -376,7 +376,13 @@
               <RowDefinition Height="*" />
               <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <StackPanel Grid.Row="0" Orientation="Horizontal">
+            <Grid Grid.Row="0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
               <CheckBox
                 x:Name="OnlySuspicious"
                 Checked="OnMemoryFilterChanged"
@@ -392,6 +398,34 @@
                 Unchecked="OnMemoryFilterChanged"
               />
             </StackPanel>
+              <ui:Button
+                Grid.Column="1"
+                Padding="8,4"
+                Appearance="Secondary"
+                Click="OnFindStringsInProcess"
+                Content="Strings"
+                Icon="{ui:SymbolIcon TextQuote24}"
+                ToolTip="Find strings in the whole process"
+              />
+              <ui:Button
+                x:Name="MemoryDumpButton"
+                Grid.Column="2"
+                Margin="8,0,0,0"
+                Padding="8,4"
+                Appearance="Secondary"
+                Click="OnMemoryDumpClick"
+                Content="Dump"
+                Icon="{ui:SymbolIcon Save24}"
+                ToolTip="Create a dump of this process"
+              >
+                <ui:Button.ContextMenu>
+                  <ContextMenu>
+                    <MenuItem Click="OnMemoryFullDump" Header="Full dump" ToolTip="Whole memory, handles and threads; for WinDbg / IDA" />
+                    <MenuItem Click="OnMemoryMiniDump" Header="Minidump" ToolTip="Threads, modules and data segments only; small" />
+                  </ContextMenu>
+                </ui:Button.ContextMenu>
+              </ui:Button>
+            </Grid>
             <ui:DataGrid
               x:Name="MemoryGrid"
               Grid.Row="1"
@@ -501,6 +535,13 @@
                 ToolTip="Back to regions"
               />
               <ui:TextBlock x:Name="StringsTitle" VerticalAlignment="Center" FontTypography="BodyStrong" />
+              <CheckBox
+                x:Name="IncludeMapped"
+                Margin="16,0,0,0"
+                VerticalAlignment="Center"
+                Content="Include mapped files"
+                ToolTip="Also scan mapped files (fonts, locale data, ...). Applies on the next scan."
+              />
             </StackPanel>
             <ui:TextBox
               x:Name="StringSearch"
@@ -508,7 +549,8 @@
               Margin="0,8,0,0"
               ClearButtonEnabled="True"
               Icon="{ui:SymbolIcon Search24}"
-              PlaceholderText="Filter strings"
+              KeyDown="OnStringSearchKeyDown"
+              PlaceholderText="Filter (Enter: search the whole scope)"
               TextChanged="OnStringFilterChanged"
             />
             <ui:DataGrid

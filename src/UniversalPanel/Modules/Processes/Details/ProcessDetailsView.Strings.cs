@@ -24,31 +24,71 @@ internal sealed partial class ProcessDetailsView
         public string Text => Source.Text;
     }
 
+    /// <summary>What the strings view scans: one region, or the whole process (Region null).</summary>
+    private (ProcessKey Target, MemoryRow? Region)? _stringsScope;
+
     private void OnFindStrings(object sender, RoutedEventArgs e)
     {
         if (SelectedRegion is { } region && Target is { } target)
         {
-            _ = Guard.RunAsync("Details.Memory.Strings", () => ShowStringsAsync(target, region));
+            StartStrings(target, region);
         }
     }
 
-    private async Task ShowStringsAsync(ProcessKey target, MemoryRow region)
+    private void OnFindStringsInProcess(object sender, RoutedEventArgs e)
     {
-        CloseStrings();
+        if (Target is { } target)
+        {
+            StartStrings(target, region: null);
+        }
+    }
+
+    private void StartStrings(ProcessKey target, MemoryRow? region)
+    {
+        _stringsScope = (target, region);
+        StringSearch.Text = string.Empty;
+        _ = Guard.RunAsync("Details.Memory.Strings", () => ScanStringsAsync(term: null));
+    }
+
+    /// <summary>
+    /// Scans the current scope. With a term, only matching strings are collected, so the cap
+    /// counts matches and the whole process is searched; without one, the first strings are shown.
+    /// </summary>
+    private async Task ScanStringsAsync(string? term)
+    {
+        if (_stringsScope is not { } scope)
+        {
+            return;
+        }
+
+        _stringsScan?.Cancel();
         var cts = new CancellationTokenSource();
         _stringsScan = cts;
+        _scanTerm = term;
 
-        StringsTitle.Text = $"Strings in {region.BaseText} ({region.SizeText})";
+        var (target, region) = scope;
+        StringsTitle.Text = region is null ? $"Strings in {TargetName}" : $"Strings in {region.BaseText} ({region.SizeText})";
         StringsSummary.Text = "Scanning…";
         StringsGrid.ItemsSource = null;
         MemoryListPanel.Visibility = Visibility.Collapsed;
         StringsPanel.Visibility = Visibility.Visible;
         await LoadingRing.ShowAsync(StringsSpinner);
 
+        var progress = new Progress<(int Done, int Total)>(p =>
+        {
+            if (_stringsScan == cts)
+            {
+                StringsSummary.Text = $"Scanning region {p.Done:N0} of {p.Total:N0}…";
+            }
+        });
+
         try
         {
             string name = TargetName;
-            var found = await Task.Run(() => MemoryStrings.Scan(target, name, region.Base, region.Size, MaxStrings, cts.Token), cts.Token);
+            bool mapped = IncludeMapped.IsChecked == true;
+            var found = await Task.Run(() => region is null
+                ? MemoryStrings.ScanProcess(target, name, mapped, MaxStrings, progress, cts.Token, term)
+                : MemoryStrings.Scan(target, name, region.Base, region.Size, MaxStrings, cts.Token, term), cts.Token);
             if (_stringsScan != cts)
             {
                 return;
@@ -76,12 +116,27 @@ internal sealed partial class ProcessDetailsView
         }
     }
 
+    private string? _scanTerm;
+
     private void UpdateStringsSummary(int total)
     {
         int shown = _stringsView?.Count ?? 0;
-        var capped = total >= MaxStrings ? $" (first {MaxStrings:N0})" : string.Empty;
-        StringsSummary.Text = string.Create(CultureInfo.CurrentCulture,
-            $"{(shown == total ? $"{total:N0}" : $"{shown:N0} of {total:N0}")} strings{capped} · min. {MemoryStrings.MinLength} characters");
+        string count = shown == total ? $"{total:N0}" : $"{shown:N0} of {total:N0}";
+        string what = _scanTerm is null ? "strings" : $"strings containing \"{_scanTerm}\"";
+        string tail = total >= MaxStrings
+            ? (_scanTerm is null ? $" · first {MaxStrings:N0}: type a term and press Enter to search everything" : $" · first {MaxStrings:N0} matches")
+            : _scanTerm is null ? " · Enter rescans with the filter as a search term" : string.Empty;
+        StringsSummary.Text = string.Create(CultureInfo.CurrentCulture, $"{count} {what}{tail}");
+    }
+
+    private void OnStringSearchKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            e.Handled = true;
+            var term = StringSearch.Text.Trim();
+            _ = Guard.RunAsync("Details.Memory.Strings", () => ScanStringsAsync(term.Length == 0 ? null : term));
+        }
     }
 
     private void CloseStrings()
