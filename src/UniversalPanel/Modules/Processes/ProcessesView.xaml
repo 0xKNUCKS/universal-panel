@@ -19,6 +19,7 @@
           <ColumnDefinition Width="*" />
           <ColumnDefinition Width="Auto" />
           <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
         <ui:TextBox
           x:Name="SearchBox"
@@ -49,6 +50,17 @@
           Click="OnFindClick"
           Icon="{ui:SymbolIcon DocumentSearch24}"
           ToolTip="Find handles or DLLs in all processes"
+        />
+        <ui:Button
+          Grid.Column="3"
+          Width="36"
+          Height="36"
+          Margin="8,0,0,0"
+          Padding="0"
+          Appearance="Secondary"
+          Click="OnHistoryClick"
+          Icon="{ui:SymbolIcon History24}"
+          ToolTip="Process history (starts and exits)"
         />
       </Grid>
 
@@ -231,5 +243,6 @@
     </Grid>
     <ContentControl x:Name="DetailsHost" Focusable="False" Visibility="Collapsed" />
     <ContentControl x:Name="FindHost" Focusable="False" Visibility="Collapsed" />
+    <ContentControl x:Name="HistoryHost" Focusable="False" Visibility="Collapsed" />
   </Grid>
 </UserControl>

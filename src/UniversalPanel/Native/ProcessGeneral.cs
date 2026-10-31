@@ -53,6 +53,25 @@ internal static unsafe partial class ProcessGeneral
         }
     }
 
+    /// <summary>Just the command line (cheap; for process history). Null if not readable.</summary>
+    public static string? TryGetCommandLine(int pid)
+    {
+        var process = PInvoke.OpenProcess(PROCESS_ACCESS_RIGHTS.PROCESS_QUERY_LIMITED_INFORMATION, false, (uint)pid);
+        if (process.IsNull)
+        {
+            return null;
+        }
+
+        try
+        {
+            return QueryCommandLine(process);
+        }
+        finally
+        {
+            PInvoke.CloseHandle(process);
+        }
+    }
+
     private static string? QueryCommandLine(HANDLE process)
     {
         uint size = 0x1000;

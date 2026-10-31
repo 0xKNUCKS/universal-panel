@@ -16,12 +16,14 @@ internal sealed partial class ProcessesView : UserControl
     private readonly ListCollectionView _view;
     private readonly DispatcherTimer _filterDebounce;
     private readonly ProcessSampler _sampler;
+    private readonly ProcessHistory _history;
     private string _filter = string.Empty;
 
-    public ProcessesView(IModuleHost host, ProcessSampler sampler)
+    public ProcessesView(IModuleHost host, ProcessSampler sampler, ProcessHistory history)
     {
         Host = host;
         _sampler = sampler;
+        _history = history;
         InitializeComponent();
 
         _view = (ListCollectionView)CollectionViewSource.GetDefaultView(_rows);

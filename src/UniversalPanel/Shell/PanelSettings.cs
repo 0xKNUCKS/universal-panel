@@ -43,6 +43,9 @@ internal sealed class PanelSettings
 
     public double ProcessRefreshSeconds { get; set; } = 1;
 
+    /// <summary>Process history keeps sampling while the panel is hidden (costs ~1-2 ms CPU/s).</summary>
+    public bool HistoryWhileHidden { get; set; }
+
     // --- Processes module -----------------------------------------------------------------
 
     public bool ProcessTree { get; set; } = true;
