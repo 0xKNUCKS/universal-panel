@@ -15,6 +15,23 @@
 //            quote:  false = pass the arguments exactly as typed, unquoted (for tools that read
 //                    their whole command line as one path, like CFF Explorer). Default true.
 {
+  // Where "Find installed tools" looks for the "files" below. %VARIABLES% are environment
+  // variables; {Documents} {Desktop} {Downloads} {Home} are the user's folders. Network paths
+  // are ignored. depth: how many folders deep (1-8). pathFolders: also the folders on PATH.
+  "search": {
+    "folders": [
+      "%ProgramFiles%",
+      "%ProgramFiles(x86)%",
+      "%LOCALAPPDATA%\\Programs",
+      "{Documents}",
+      "{Desktop}",
+      "{Downloads}",
+      "%SystemDrive%\\Tools"
+    ],
+    "depth": 5,
+    "pathFolders": true
+  },
+
   "tools": [
     {
       "id": "ida",

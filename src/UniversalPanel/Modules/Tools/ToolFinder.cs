@@ -7,8 +7,8 @@ using UniversalPanel.Native;
 namespace UniversalPanel.Modules.Tools;
 
 /// <summary>
-/// Looks for the tools in Catalog/known-tools.json: their "files" in the usual places (Program Files,
-/// per-user Programs, Documents, Desktop, Downloads, C:\Tools) and in the folders on PATH, and
+/// Looks for the tools in Catalog/known-tools.json: their "files" in the catalog's "search" folders
+/// and in the folders on PATH, and
 /// their "wsl" commands in each installed WSL distro. Keeps only what <see cref="ToolCatalog"/>
 /// recognizes, one per tool and version. Links (junctions, symlinks) aren't followed.
 /// </summary>
@@ -40,7 +40,7 @@ internal static class ToolFinder
         var deep = new EnumerationOptions
         {
             RecurseSubdirectories = true,
-            MaxRecursionDepth = 5,
+            MaxRecursionDepth = Math.Clamp(ToolCatalog.Search.Depth, 1, 8),
             IgnoreInaccessible = true,
             AttributesToSkip = FileAttributes.ReparsePoint | FileAttributes.System,
         };
@@ -55,7 +55,7 @@ internal static class ToolFinder
 
         // Command-line tools usually live on PATH (only the folders themselves, not below them).
         var shallow = new EnumerationOptions { IgnoreInaccessible = true, AttributesToSkip = FileAttributes.ReparsePoint };
-        foreach (var folder in PathFolders())
+        foreach (var folder in ToolCatalog.Search.PathFolders ? PathFolders() : [])
         {
             foreach (var path in Directory.EnumerateFiles(folder, "*.exe", shallow))
             {
@@ -74,20 +74,22 @@ internal static class ToolFinder
         return result;
     }
 
-    private static IEnumerable<string> Roots()
+    /// <summary>The catalog's search folders, expanded; only local folders that exist.</summary>
+    private static IEnumerable<string> Roots() =>
+        ToolCatalog.Search.Folders
+            .Select(Expand)
+            .Where(f => Path.IsPathFullyQualified(f) && !Shell.ToolEntry.IsNetworkPath(f) && Directory.Exists(f))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>{Documents} {Desktop} {Downloads} {Home} (where Windows really keeps them, OneDrive or not), then %VARIABLES%.</summary>
+    private static string Expand(string folder)
     {
-        string profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        string[] roots =
-        [
-            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs"),
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
-            Path.Combine(profile, "Downloads"),
-            Path.Combine(Path.GetPathRoot(profile) ?? "C:\\", "Tools"),
-        ];
-        return roots.Where(r => r.Length > 0 && Directory.Exists(r)).Distinct(StringComparer.OrdinalIgnoreCase);
+        string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        return Environment.ExpandEnvironmentVariables(folder
+            .Replace("{Documents}", Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), StringComparison.OrdinalIgnoreCase)
+            .Replace("{Desktop}", Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), StringComparison.OrdinalIgnoreCase)
+            .Replace("{Downloads}", Path.Combine(home, "Downloads"), StringComparison.OrdinalIgnoreCase)
+            .Replace("{Home}", home, StringComparison.OrdinalIgnoreCase));
     }
 
     private static IEnumerable<string> PathFolders() =>

@@ -73,11 +73,27 @@ internal sealed class CatalogTool
     public List<ToolAction> Actions { get; set; } = [];
 }
 
+/// <summary>Where "Find installed tools" looks (the catalog's "search" section).</summary>
+internal sealed class CatalogSearch
+{
+    /// <summary>Folders searched recursively: %VARIABLES% and {Documents} {Desktop} {Downloads} {Home}.</summary>
+    public List<string> Folders { get; set; } =
+        ["%ProgramFiles%", "%ProgramFiles(x86)%", "%LOCALAPPDATA%\\Programs", "{Documents}", "{Desktop}", "{Downloads}", "%SystemDrive%\\Tools"];
+
+    /// <summary>How many folders deep below each one (1-8).</summary>
+    public int Depth { get; set; } = 5;
+
+    /// <summary>Also look in the folders on PATH (not below them).</summary>
+    public bool PathFolders { get; set; } = true;
+}
+
 internal static class ToolCatalog
 {
-    private static readonly Lazy<List<CatalogTool>> Catalog = new(Load);
+    private static readonly Lazy<CatalogFile> Catalog = new(Load);
 
-    public static IReadOnlyList<CatalogTool> Tools => Catalog.Value;
+    public static IReadOnlyList<CatalogTool> Tools => Catalog.Value.Tools;
+
+    public static CatalogSearch Search => Catalog.Value.Search ?? new CatalogSearch();
 
     public static CatalogTool? Find(string? id) => id is null ? null : Tools.FirstOrDefault(t => t.Id == id);
 
@@ -88,7 +104,7 @@ internal static class ToolCatalog
     /// <summary>The catalog's default actions for a tool (empty for tools it doesn't know).</summary>
     public static IReadOnlyList<ToolAction> DefaultActions(string? known) => Find(known)?.Actions ?? [];
 
-    private static List<CatalogTool> Load()
+    private static CatalogFile Load()
     {
         try
         {
@@ -100,19 +116,22 @@ internal static class ToolCatalog
                 ReadCommentHandling = JsonCommentHandling.Skip,
                 AllowTrailingCommas = true,
             };
-            var root = JsonSerializer.Deserialize<CatalogFile>(stream, options);
-            return root?.Tools.Where(t => t.Id.Length > 0 && t.Name.Length > 0).ToList() ?? [];
+            var root = JsonSerializer.Deserialize<CatalogFile>(stream, options) ?? new CatalogFile();
+            root.Tools = root.Tools.Where(t => t.Id.Length > 0 && t.Name.Length > 0).ToList();
+            return root;
         }
         catch (Exception ex) when (ex is JsonException or IOException)
         {
             Log.Error("Tools", "Couldn't read the tool catalog; no tools will be recognized.", ex);
-            return [];
+            return new CatalogFile();
         }
     }
 
     private sealed class CatalogFile
     {
         public List<CatalogTool> Tools { get; set; } = [];
+
+        public CatalogSearch? Search { get; set; }
     }
 
     /// <summary>What the file (or "wsl:distro:command" entry) is; never throws.</summary>

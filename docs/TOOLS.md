@@ -93,6 +93,28 @@ Examples:
 Before opening a pull request, run the panel and check the tool shows up with the right name,
 badge and actions, and that the preview on its Edit page is the command you expect.
 
+## Where "Find installed tools" looks
+
+Also in `known-tools.json`, in the `"search"` section at the top:
+
+```jsonc
+"search": {
+  "folders": ["%ProgramFiles%", "%ProgramFiles(x86)%", "%LOCALAPPDATA%\\Programs",
+              "{Documents}", "{Desktop}", "{Downloads}", "%SystemDrive%\\Tools"],
+  "depth": 5,
+  "pathFolders": true
+}
+```
+
+- **`folders`**: searched for every tool's `files`. `%VARIABLES%` are environment variables;
+  `{Documents}`, `{Desktop}`, `{Downloads}` and `{Home}` are the user's folders (wherever Windows
+  keeps them, OneDrive included). Network paths are ignored.
+- **`depth`**: how many folders deep below each one (1 to 8). Deeper finds more but takes longer.
+- **`pathFolders`**: also look in the folders on PATH, where command-line tools usually are
+  (just those folders, not below them).
+- WSL tools aren't found through folders: each distro is asked whether it has the tools' `wsl`
+  commands.
+
 ## Your own tools
 
 Any program, script or WSL command can be added (**Add > Add a program…**) and given actions on
