@@ -15,43 +15,82 @@ using UniversalPanel.Shell;
 namespace UniversalPanel.Modules.Terminal;
 
 /// <summary>
-/// The panel's link to its terminal host (TerminalHostProcess). The panel creates a pipe with a
-/// random name that only this user can open, starts the host with the user's normal rights
-/// (through Explorer when the panel is elevated) and accepts the connection only if it comes from
-/// this same program. The host sends output and exit codes, which the panel only displays.
+/// The panel's link to a terminal host (TerminalHostProcess). Normal shells: the panel creates a
+/// pipe with a random name that only this user can open, starts the host with the user's normal
+/// rights (through Explorer when the panel is elevated) and accepts the connection only if it
+/// comes from this same program. Admin shells (elevated panel only): a second host, the panel's
+/// own elevated child, over its stdin/stdout. Either host sends output and exit codes, which the
+/// panel only displays.
 /// </summary>
 internal sealed partial class TerminalHost : IDisposable
 {
-    private static TerminalHost? _current;
-    private static Task<TerminalHost>? _starting;
+    // [0] normal, [1] admin.
+    private static readonly TerminalHost?[] Current = new TerminalHost?[2];
+    private static readonly Task<TerminalHost>?[] Starting = new Task<TerminalHost>?[2];
 
-    private readonly NamedPipeServerStream _pipe;
+    private readonly Stream _input;
+    private readonly Stream _output;
+    private readonly IDisposable _owner;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly ConcurrentDictionary<int, TerminalSession> _sessions = new();
     private int _nextId;
     private bool _closed;
 
-    private TerminalHost(NamedPipeServerStream pipe) => _pipe = pipe;
+    private TerminalHost(Stream input, Stream output, IDisposable owner)
+    {
+        _input = input;
+        _output = output;
+        _owner = owner;
+    }
 
     /// <summary>The running host, started (and connected) on first use.</summary>
-    public static async Task<TerminalHost> GetAsync()
+    /// <param name="admin">The elevated host; only when the panel itself is elevated.</param>
+    public static async Task<TerminalHost> GetAsync(bool admin = false)
     {
-        if (_current is { _closed: false } host)
+        if (admin && !Elevation.IsElevated)
+        {
+            // An unelevated panel driving an elevated shell would let any program running as the
+            // user type into it through the panel (Windows Terminal refuses mixed elevation too).
+            throw new UnauthorizedAccessException("Admin terminals need the panel to run as administrator.");
+        }
+
+        int slot = admin ? 1 : 0;
+        if (Current[slot] is { _closed: false } host)
         {
             return host;
         }
 
         // Tabs opened together share one start (otherwise each would start its own host).
-        _starting ??= StartAsync();
+        Starting[slot] ??= admin ? Task.FromResult(StartAdmin()) : StartAsync();
         try
         {
-            _current = await _starting.ConfigureAwait(true);
-            return _current;
+            Current[slot] = await Starting[slot]!.ConfigureAwait(true);
+            return Current[slot]!;
         }
         finally
         {
-            _starting = null;
+            Starting[slot] = null;
         }
+    }
+
+    private static string Self => Path.Combine(AppContext.BaseDirectory, "UniversalPanel.exe");
+
+    /// <summary>The elevated panel's own child, so it's elevated; the pipes are inherited, not named.</summary>
+    private static TerminalHost StartAdmin()
+    {
+        var start = new ProcessStartInfo(Self)
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+        };
+        start.ArgumentList.Add(TerminalHostProcess.Switch);
+        start.ArgumentList.Add(TerminalHostProcess.Stdio);
+        var process = Process.Start(start) ?? throw new IOException("The admin terminal host didn't start.");
+        var host = new TerminalHost(process.StandardOutput.BaseStream, process.StandardInput.BaseStream, process);
+        _ = host.ReadAsync();
+        return host;
     }
 
     private static async Task<TerminalHost> StartAsync()
@@ -63,7 +102,7 @@ internal sealed partial class TerminalHost : IDisposable
         try
         {
             // The panel's own exe, next to its files (the host is this same program in another mode).
-            string self = Path.Combine(AppContext.BaseDirectory, "UniversalPanel.exe");
+            string self = Self;
             string arguments = $"{TerminalHostProcess.Switch} {name}";
             if (Elevation.IsElevated)
             {
@@ -93,7 +132,7 @@ internal sealed partial class TerminalHost : IDisposable
             throw;
         }
 
-        var host = new TerminalHost(pipe);
+        var host = new TerminalHost(pipe, pipe, pipe);
         _ = host.ReadAsync();
         return host;
     }
@@ -127,7 +166,7 @@ internal sealed partial class TerminalHost : IDisposable
     {
         try
         {
-            await TerminalProtocol.WriteAsync(_pipe, _gate, type, id, payload).ConfigureAwait(false);
+            await TerminalProtocol.WriteAsync(_output, _gate, type, id, payload).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is IOException or ObjectDisposedException)
         {
@@ -139,7 +178,7 @@ internal sealed partial class TerminalHost : IDisposable
     {
         try
         {
-            while (await TerminalProtocol.ReadAsync(_pipe).ConfigureAwait(false) is { } message)
+            while (await TerminalProtocol.ReadAsync(_input).ConfigureAwait(false) is { } message)
             {
                 if (!_sessions.TryGetValue(message.Session, out var session))
                 {
@@ -190,13 +229,22 @@ internal sealed partial class TerminalHost : IDisposable
         }
 
         _sessions.Clear();
-        _pipe.Dispose();
+        // Closing our ends gives the host end-of-input; it exits, and its job ends the shells.
+        _output.Dispose();
+        _input.Dispose();
+        _owner.Dispose();
     }
 
     public void Dispose() => Stopped(null);
 
-    /// <summary>Ends the host (and every shell in its job) when the panel exits.</summary>
-    public static void Shutdown() => _current?.Dispose();
+    /// <summary>Ends the hosts (and every shell in their jobs) when the panel exits.</summary>
+    public static void Shutdown()
+    {
+        foreach (var host in Current)
+        {
+            host?.Dispose();
+        }
+    }
 
     [LibraryImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]

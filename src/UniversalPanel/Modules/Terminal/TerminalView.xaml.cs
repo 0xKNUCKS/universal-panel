@@ -4,6 +4,8 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
 using UniversalPanel.Diagnostics;
+using UniversalPanel.Native;
+using UniversalPanel.Shell;
 using Wpf.Ui.Controls;
 
 namespace UniversalPanel.Modules.Terminal;
@@ -41,6 +43,7 @@ internal sealed partial class TerminalView : UserControl
     {
         _profiles = await Task.Run(TerminalProfiles.Detect);
         QuickStart.ItemsSource = _profiles;
+        RestoreTabs();
     }
 
     // ---- opening and closing -------------------------------------------------------------------
@@ -61,14 +64,25 @@ internal sealed partial class TerminalView : UserControl
         {
             foreach (var profile in _profiles)
             {
-                var item = new System.Windows.Controls.MenuItem
-                {
-                    Header = profile.Name,
-                    Icon = new System.Windows.Controls.Image { Source = profile.Icon, Width = 16, Height = 16 },
-                };
-                item.Click += (_, _) => Open(profile);
-                menu.Items.Add(item);
+                menu.Items.Add(ProfileItem(profile, admin: null));
             }
+
+            // Admin shells only from an elevated panel (see TerminalHost.GetAsync).
+            var asAdmin = new System.Windows.Controls.MenuItem
+            {
+                Header = "Run as administrator",
+                Icon = new SymbolIcon { Symbol = SymbolRegular.Shield16 },
+                IsEnabled = Elevation.IsElevated,
+                ToolTip = Elevation.IsElevated ? null : "Restart the panel as administrator first",
+            };
+            ToolTipService.SetShowOnDisabled(asAdmin, true);
+            foreach (var profile in _profiles)
+            {
+                asAdmin.Items.Add(ProfileItem(profile, admin: true));
+            }
+
+            menu.Items.Add(new Separator());
+            menu.Items.Add(asAdmin);
         }
 
         menu.PlacementTarget = NewButton;
@@ -76,15 +90,29 @@ internal sealed partial class TerminalView : UserControl
         menu.IsOpen = true;
     }
 
+    /// <param name="admin">null: Shift+click opens it as administrator.</param>
+    private System.Windows.Controls.MenuItem ProfileItem(TerminalProfile profile, bool? admin)
+    {
+        var item = new System.Windows.Controls.MenuItem
+        {
+            Header = profile.Name,
+            Icon = new System.Windows.Controls.Image { Source = profile.Icon, Width = 16, Height = 16 },
+        };
+        item.Click += (_, _) => Open(profile, admin ?? ShiftHeld());
+        return item;
+    }
+
     private void OnQuickStart(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { DataContext: TerminalProfile profile })
         {
-            Open(profile);
+            Open(profile, ShiftHeld());
         }
     }
 
-    private void Open(TerminalProfile profile)
+    private static bool ShiftHeld() => Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+
+    private void Open(TerminalProfile profile, bool admin, string? name = null)
     {
         if (TerminalRenderer.Problem() is { } problem)
         {
@@ -92,14 +120,59 @@ internal sealed partial class TerminalView : UserControl
             return;
         }
 
+        if (admin && !Elevation.IsElevated)
+        {
+            _host.ShowNotice("Panel isn't elevated", "Restart it as administrator from the tray to open admin terminals.", InfoBarSeverity.Warning);
+            return;
+        }
+
         Guard.Run("Terminal.Open", () =>
         {
-            var tab = TerminalTab.Create(profile, Dispatcher);
+            var tab = TerminalTab.Create(profile, Dispatcher, admin);
+            if (name is not null)
+            {
+                tab.Name = name;
+            }
+
+            tab.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(TerminalTab.Name))
+                {
+                    SaveTabs();
+                }
+            };
             _tabs.Add(tab);
             Surfaces.Children.Add(tab.Surface);
             Tabs.SelectedItem = tab;
             UpdateEmpty();
+            SaveTabs();
         });
+    }
+
+    /// <summary>Reopens the tabs saved last time (shells start fresh; admin tabs aren't saved).</summary>
+    private void RestoreTabs()
+    {
+        if (_profiles is null || _tabs.Count > 0)
+        {
+            return;
+        }
+
+        foreach (var saved in PanelSettings.Current.TerminalTabs.ToList())
+        {
+            if (_profiles.FirstOrDefault(p => p.Name == saved.Profile) is { } profile)
+            {
+                Open(profile, admin: false, saved.Name);
+            }
+        }
+    }
+
+    private void SaveTabs()
+    {
+        PanelSettings.Current.TerminalTabs = _tabs
+            .Where(t => !t.Admin)
+            .Select(t => new SavedTerminalTab(t.Session.Profile.Name, t.Name))
+            .ToList();
+        PanelSettings.Current.SaveSoon();
     }
 
     private void OnCloseTabButton(object sender, RoutedEventArgs e)
@@ -130,6 +203,7 @@ internal sealed partial class TerminalView : UserControl
         }
 
         UpdateEmpty();
+        SaveTabs();
     }
 
     private void OnTabChanged(object sender, SelectionChangedEventArgs e)

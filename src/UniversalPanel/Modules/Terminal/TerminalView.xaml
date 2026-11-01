@@ -82,6 +82,15 @@
                 VerticalAlignment="Center"
                 Source="{Binding Icon}"
               />
+              <ui:SymbolIcon
+                Margin="0,0,6,0"
+                VerticalAlignment="Center"
+                FontSize="14"
+                Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                Symbol="Shield16"
+                ToolTip="Administrator"
+                Visibility="{Binding Admin, Converter={StaticResource BoolToVisibility}}"
+              />
               <TextBlock
                 x:Name="Title"
                 MaxWidth="140"

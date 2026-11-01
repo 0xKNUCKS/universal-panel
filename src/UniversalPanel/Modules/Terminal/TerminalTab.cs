@@ -36,6 +36,8 @@ internal sealed class TerminalTab : INotifyPropertyChanged
 
     public ImageSource? Icon { get; private init; }
 
+    public bool Admin => Session.Admin;
+
     public bool Ended => Session.Ended;
 
     public bool IsRenaming
@@ -49,9 +51,9 @@ internal sealed class TerminalTab : INotifyPropertyChanged
     }
 
     /// <summary>Only after <see cref="TerminalRenderer.Problem"/> said the control is genuine.</summary>
-    public static TerminalTab Create(TerminalProfile profile, Dispatcher dispatcher)
+    public static TerminalTab Create(TerminalProfile profile, Dispatcher dispatcher, bool admin)
     {
-        var session = new TerminalSession(profile, dispatcher);
+        var session = new TerminalSession(profile, dispatcher, admin);
         var control = new TerminalControl { AutoResize = true };
         control.Loaded += (_, _) => control.SetTheme(
             new TerminalTheme

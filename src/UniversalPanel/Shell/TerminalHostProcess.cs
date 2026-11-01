@@ -17,17 +17,20 @@ namespace UniversalPanel.Shell;
 /// inherit the panel's elevation. It connects back over the panel's private pipe, starts shells in
 /// pseudo consoles when asked, and sends their output; all shells are in one kill-on-close job,
 /// so they end with the host, and the host ends when the panel closes the pipe.
+/// "--terminal-host --stdio" is the admin host: an elevated panel starts it as its own child and
+/// talks to it over the inherited stdin/stdout pipes, which no other process can open.
 /// </summary>
 internal static partial class TerminalHostProcess
 {
     public const string Switch = "--terminal-host";
+    public const string Stdio = "--stdio";
 
     [GeneratedRegex(@"^UniversalPanel\.Terminal\.[0-9a-f]{32}$")]
     private static partial Regex PipeName();
 
     public static int Run(IReadOnlyList<string> args)
     {
-        if (args.Count != 1 || !PipeName().IsMatch(args[0]))
+        if (args.Count != 1 || (args[0] != Stdio && !PipeName().IsMatch(args[0])))
         {
             return 2;
         }
@@ -36,10 +39,18 @@ internal static partial class TerminalHostProcess
         var sessions = new ConcurrentDictionary<int, PseudoConsole>();
         try
         {
+            var gate = new SemaphoreSlim(1, 1);
+            if (args[0] == Stdio)
+            {
+                using var input = Console.OpenStandardInput();
+                using var output = Console.OpenStandardOutput();
+                ServeAsync(input, output, gate, sessions, job).GetAwaiter().GetResult();
+                return 0;
+            }
+
             using var pipe = new NamedPipeClientStream(".", args[0], PipeDirection.InOut, PipeOptions.Asynchronous);
             pipe.Connect(15_000);
-            var gate = new SemaphoreSlim(1, 1);
-            ServeAsync(pipe, gate, sessions, job).GetAwaiter().GetResult();
+            ServeAsync(pipe, pipe, gate, sessions, job).GetAwaiter().GetResult();
             return 0;
         }
         catch (Exception ex) when (ex is IOException or TimeoutException or InvalidDataException or UnauthorizedAccessException)
@@ -61,9 +72,9 @@ internal static partial class TerminalHostProcess
         }
     }
 
-    private static async Task ServeAsync(Stream pipe, SemaphoreSlim gate, ConcurrentDictionary<int, PseudoConsole> sessions, nint job)
+    private static async Task ServeAsync(Stream input, Stream pipe, SemaphoreSlim gate, ConcurrentDictionary<int, PseudoConsole> sessions, nint job)
     {
-        while (await TerminalProtocol.ReadAsync(pipe) is { } message)
+        while (await TerminalProtocol.ReadAsync(input) is { } message)
         {
             var (type, id, payload) = message;
             switch (type)

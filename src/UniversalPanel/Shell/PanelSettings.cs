@@ -73,6 +73,9 @@ internal sealed class PanelSettings
     /// <summary>Sections the user collapsed.</summary>
     public List<string> ToolSectionsCollapsed { get; set; } = [];
 
+    /// <summary>Terminal tabs to reopen: shell (profile name) and tab name. Admin tabs aren't saved.</summary>
+    public List<SavedTerminalTab> TerminalTabs { get; set; } = [];
+
     private static PanelSettings Load()
     {
         try
@@ -108,6 +111,10 @@ internal sealed class PanelSettings
         }
 
         ToolSectionsCollapsed = (ToolSectionsCollapsed ?? []).Where(c => c is { Length: > 0 and <= 40 }).Distinct().Take(20).ToList();
+        TerminalTabs = (TerminalTabs ?? [])
+            .Where(t => t is { Profile.Length: > 0 and <= 80, Name.Length: > 0 and <= 40 })
+            .Take(20)
+            .ToList();
 
         if (string.IsNullOrWhiteSpace(PanelMonitor) || PanelMonitor.Length > 64)
         {
@@ -148,3 +155,5 @@ internal sealed class PanelSettings
         }
     }
 }
+
+internal sealed record SavedTerminalTab(string Profile, string Name);

@@ -14,7 +14,7 @@ namespace UniversalPanel.Modules.Terminal;
 /// the host as UTF-8; output comes back as UTF-8 and is decoded with a stateful decoder, so a
 /// character split across two reads stays intact.
 /// </summary>
-internal sealed class TerminalSession(TerminalProfile profile, Dispatcher dispatcher) : ITerminalConnection, INotifyPropertyChanged
+internal sealed class TerminalSession(TerminalProfile profile, Dispatcher dispatcher, bool admin) : ITerminalConnection, INotifyPropertyChanged
 {
     private readonly Decoder _decoder = Encoding.UTF8.GetDecoder();
     private TerminalHost? _host;
@@ -29,6 +29,9 @@ internal sealed class TerminalSession(TerminalProfile profile, Dispatcher dispat
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public TerminalProfile Profile { get; } = profile;
+
+    /// <summary>Runs in the elevated host. Never saved: a restored tab is always a normal one.</summary>
+    public bool Admin { get; } = admin;
 
     public string Name
     {
@@ -65,7 +68,7 @@ internal sealed class TerminalSession(TerminalProfile profile, Dispatcher dispat
         {
             try
             {
-                var host = await TerminalHost.GetAsync();
+                var host = await TerminalHost.GetAsync(Admin);
                 string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
                 await host.StartAsync(this, new TerminalStart(Profile.Program, Profile.Arguments.ToList(), home, _columns, _rows));
             }
