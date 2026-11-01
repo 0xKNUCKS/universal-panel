@@ -23,6 +23,13 @@ internal static class ToolStore
 
     private const int MaxTools = 200;
 
+    // Readable when hand-edited: "+" and other characters stay as typed (a local file, not HTML).
+    private static readonly JsonSerializerOptions WriteOptions = new()
+    {
+        WriteIndented = true,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
+
     public static List<ToolEntry> Load()
     {
         try
@@ -52,7 +59,7 @@ internal static class ToolStore
         {
             Directory.CreateDirectory(Folder);
             var temp = FilePath + ".tmp";
-            File.WriteAllText(temp, JsonSerializer.Serialize(new ToolFile { Tools = tools.ToList() }, new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(temp, JsonSerializer.Serialize(new ToolFile { Tools = tools.ToList() }, WriteOptions));
             File.Move(temp, FilePath, overwrite: true);
             ToolIcons.RemoveUnused(tools.Select(t => t.Icon));
         }
