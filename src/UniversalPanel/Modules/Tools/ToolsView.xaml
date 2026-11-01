@@ -472,13 +472,100 @@
               <ColumnDefinition Width="*" />
               <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <ui:TextBox x:Name="EditPath" />
+            <ui:TextBox x:Name="EditPath" TextChanged="OnEditPathChanged" />
             <ui:Button Grid.Column="1" Margin="4,0,0,0" Appearance="Secondary" Click="OnEditBrowsePath" Content="Browse…" />
           </Grid>
 
           <TextBlock Margin="0,0,0,4" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Text="Sections" />
           <TextBlock Margin="0,0,0,6" Style="{StaticResource Secondary}" Text="A tool can be in more than one. None checked uses the defaults for that tool." TextTrimming="None" TextWrapping="Wrap" />
           <WrapPanel x:Name="EditSections" />
+
+          <TextBlock Margin="0,16,0,4" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Text="Actions" />
+          <TextBlock
+            Margin="0,0,0,8"
+            Style="{StaticResource Secondary}"
+            Text="What &quot;Open with&quot; offers for this tool. Arguments can use {pid} {path} {dir} {name}; each argument stays one argument, spaces and all, and nothing goes through a shell. Quotes are optional."
+            TextTrimming="None"
+            TextWrapping="Wrap"
+          />
+          <ItemsControl x:Name="EditActions">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Border
+                  Margin="0,0,0,8"
+                  Padding="8"
+                  BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                  BorderThickness="1"
+                  CornerRadius="6"
+                >
+                  <StackPanel>
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                      </Grid.ColumnDefinitions>
+                      <ui:TextBox PlaceholderText="Name, e.g. Open in IDA" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+                      <ui:Button
+                        Grid.Column="1"
+                        Margin="4,0,0,0"
+                        Padding="8,6"
+                        Appearance="Transparent"
+                        Click="OnEditRemoveAction"
+                        Icon="{ui:SymbolIcon Delete24}"
+                        ToolTip="Remove this action"
+                      />
+                    </Grid>
+                    <Grid Margin="0,6,0,0">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                      </Grid.ColumnDefinitions>
+                      <ComboBox
+                        DisplayMemberPath="Label"
+                        ItemsSource="{x:Static local:EditableAction.Targets}"
+                        SelectedValue="{Binding Target}"
+                        SelectedValuePath="Value"
+                        ToolTip="What the action runs on"
+                      />
+                      <ComboBox
+                        Grid.Column="1"
+                        Margin="6,0,0,0"
+                        DisplayMemberPath="Label"
+                        ItemsSource="{x:Static local:EditableAction.RunModes}"
+                        SelectedValue="{Binding Run}"
+                        SelectedValuePath="Value"
+                        ToolTip="Console keeps a window open with the tool's output"
+                      />
+                    </Grid>
+                    <ui:TextBox
+                      Margin="0,6,0,0"
+                      FontFamily="Consolas"
+                      PlaceholderText="Arguments, e.g. -n 8 {path}"
+                      Text="{Binding Args, UpdateSourceTrigger=PropertyChanged}"
+                    />
+                    <TextBlock
+                      Margin="2,6,0,0"
+                      FontFamily="Consolas"
+                      Style="{StaticResource Secondary}"
+                      Text="{Binding Preview}"
+                      TextTrimming="None"
+                      TextWrapping="Wrap"
+                    />
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <StackPanel Orientation="Horizontal">
+            <ui:Button Appearance="Secondary" Click="OnEditAddAction" Content="Add action" Icon="{ui:SymbolIcon Add24}" />
+            <ui:Button
+              x:Name="ResetActionsButton"
+              Margin="6,0,0,0"
+              Appearance="Secondary"
+              Click="OnEditResetActions"
+              Content="Reset to defaults"
+            />
+          </StackPanel>
         </StackPanel>
       </ScrollViewer>
     </Grid>

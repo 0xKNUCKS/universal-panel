@@ -438,6 +438,8 @@ internal sealed partial class ToolsView : UserControl
         EditName.PlaceholderText = row.Identity.Name;
         EditPath.Text = row.Path;
 
+        LoadEditActions(row.Actions);
+
         EditSections.Children.Clear();
         foreach (var category in ToolCategories.All.Concat(row.Categories).Distinct())
         {
@@ -451,6 +453,61 @@ internal sealed partial class ToolsView : UserControl
         }
 
         ShowPage(EditPage);
+    }
+
+    // ---- edit: actions ----
+
+    private readonly ObservableCollection<EditableAction> _editActions = [];
+
+    private void LoadEditActions(IEnumerable<ToolAction> actions)
+    {
+        _editActions.Clear();
+        foreach (var action in actions)
+        {
+            _editActions.Add(new EditableAction(action.Clone(), () => EditPath.Text.Trim().Trim('"')));
+        }
+
+        EditActions.ItemsSource = _editActions;
+        ResetActionsButton.IsEnabled = _editing is { } row && ToolCatalog.DefaultActions(row.Identity.Known).Count > 0;
+    }
+
+    private void OnEditPathChanged(object sender, TextChangedEventArgs e)
+    {
+        foreach (var action in _editActions)
+        {
+            action.RefreshPreview();
+        }
+    }
+
+    private void OnEditAddAction(object sender, RoutedEventArgs e) =>
+        _editActions.Add(new EditableAction(
+            new ToolAction { Name = "New action", Target = ToolTargets.File, Run = _editing?.IsConsoleTool == true ? ToolRunModes.Console : ToolRunModes.Window, Args = "{path}" },
+            () => EditPath.Text.Trim().Trim('"')));
+
+    private void OnEditRemoveAction(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: EditableAction action })
+        {
+            _editActions.Remove(action);
+        }
+    }
+
+    private void OnEditResetActions(object sender, RoutedEventArgs e)
+    {
+        if (_editing is { } row)
+        {
+            LoadEditActions(ToolCatalog.DefaultActions(row.Identity.Known));
+        }
+    }
+
+    /// <summary>The edited actions, or null when they match the catalog's (so later default updates still apply).</summary>
+    private List<ToolAction>? EditedActions(ToolRow row)
+    {
+        var edited = _editActions.Select(a => a.ToAction()).Where(a => a.Name.Length > 0).ToList();
+        var defaults = ToolCatalog.DefaultActions(row.Identity.Known);
+        bool same = edited.Count == defaults.Count && edited.Zip(defaults).All(p =>
+            p.First.Name == p.Second.Name && p.First.Target == p.Second.Target && p.First.Run == p.Second.Run && p.First.Args == p.Second.Args);
+        return same ? null : edited;
     }
 
     private void OnEditPickIcon(object sender, RoutedEventArgs e)
@@ -497,7 +554,7 @@ internal sealed partial class ToolsView : UserControl
         }
 
         string path = EditPath.Text.Trim().Trim('"');
-        if (!ToolEntry.IsSafePath(path))
+        if (!ToolEntry.IsSafePath(path) && !WslTool.TryParse(path, out _, out _))
         {
             _host.ShowNotice("That isn't a full path", "Use Browse… or paste a path like C:\\Tools\\tool.exe.", InfoBarSeverity.Warning);
             return;
@@ -518,6 +575,7 @@ internal sealed partial class ToolsView : UserControl
             Icon = _editIcon,
             // Same as the defaults (or none): keep following the catalog.
             Categories = checkedSections.Count == 0 || checkedSections.SequenceEqual(ToolCatalog.DefaultCategories(row.Identity.Known)) ? null : checkedSections,
+            Actions = EditedActions(row),
         };
         entry.Sanitize();
 
@@ -526,7 +584,7 @@ internal sealed partial class ToolsView : UserControl
         Save();
         _editing = null;
         ShowPage(MainPage);
-        if (!File.Exists(path))
+        if (!WslTool.TryParse(path, out _, out _) && !File.Exists(path))
         {
             _host.ShowNotice("Saved, but that file doesn't exist", path, InfoBarSeverity.Warning);
         }
