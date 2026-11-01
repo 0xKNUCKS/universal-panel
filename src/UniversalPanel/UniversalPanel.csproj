@@ -16,6 +16,8 @@
     <!-- Custom Main in App.xaml.cs gates startup on the single-instance check. -->
     <!-- Same setup as Flow.Launcher/Flow.Launcher.csproj. -->
     <StartupObject>UniversalPanel.App</StartupObject>
+    <!-- packages.lock.json pins every package's content hash; a changed package fails restore. -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -32,11 +34,23 @@
     <PackageReference Include="WPF-UI" Version="4.3.0" />
     <PackageReference Include="NHotkey.Wpf" Version="3.0.0" />
     <PackageReference Include="H.NotifyIcon.Wpf" Version="2.4.1" />
+    <!-- Windows Terminal's WPF control (the one Visual Studio uses). Microsoft doesn't publish it on
+         NuGet; this repackage ships Microsoft's own Authenticode-signed binaries, checked before use
+         (TerminalRenderer.cs) and pinned by packages.lock.json. See docs/REFERENCES.md. -->
+    <PackageReference Include="CI.Microsoft.Terminal.Wpf" Version="1.25.260303002" />
     <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.275">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
+
+  <!-- The terminal package also ships an 85 MB native .pdb; the panel doesn't need it. -->
+  <Target Name="SkipTerminalSymbols" AfterTargets="ResolvePackageAssets">
+    <ItemGroup>
+      <NativeCopyLocalItems Remove="@(NativeCopyLocalItems)" Condition="'%(Extension)' == '.pdb'" />
+      <RuntimeCopyLocalItems Remove="@(RuntimeCopyLocalItems)" Condition="'%(Extension)' == '.pdb'" />
+    </ItemGroup>
+  </Target>
 
   <!-- Detect It Easy CLI: pinned download + manifest; see third_party/die/Die.targets. -->
   <Import Project="..\..\third_party\die\Die.targets" />
