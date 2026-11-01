@@ -57,6 +57,7 @@ internal sealed partial class ProcessesView
         UpdatePriorityMenu(row);
         OpenLocationItem.IsEnabled = row.ImagePath is not null;
         CopyPathItem.IsEnabled = row.ImagePath is not null;
+        Tools.OpenWithMenu.Fill(OpenWithMenu, Host, ToolTarget.ForProcess(row.Pid, row.ImagePath));
     }
 
     private void OnCopyPath(object sender, RoutedEventArgs e)

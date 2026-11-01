@@ -204,6 +204,13 @@
             </ui:DataGrid.RowStyle>
             <ui:DataGrid.ContextMenu>
               <ContextMenu>
+                <!--  Filled from the user's tools when the menu opens (Tools/OpenWithMenu.cs)  -->
+                <MenuItem x:Name="ModuleOpenWithMenu" Header="Open with">
+                  <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="Open24" />
+                  </MenuItem.Icon>
+                </MenuItem>
+                <Separator />
                 <MenuItem Click="OnModuleOpenLocation" Header="Open file location">
                   <MenuItem.Icon>
                     <ui:SymbolIcon Symbol="FolderOpen24" />

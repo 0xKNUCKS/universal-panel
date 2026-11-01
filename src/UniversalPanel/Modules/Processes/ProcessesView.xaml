@@ -220,6 +220,12 @@
                     <ui:SymbolIcon Symbol="Copy24" />
                   </MenuItem.Icon>
                 </MenuItem>
+                <!--  Filled from the user's tools when the menu opens (Tools/OpenWithMenu.cs)  -->
+                <MenuItem x:Name="OpenWithMenu" Header="Open with">
+                  <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="Open24" />
+                  </MenuItem.Icon>
+                </MenuItem>
                 <MenuItem Header="Create dump">
                   <MenuItem.Icon>
                     <ui:SymbolIcon Symbol="Save24" />

@@ -117,10 +117,13 @@ internal sealed partial class ProcessDetailsView
 
     private void OnModulesContextMenuOpening(object sender, ContextMenuEventArgs e)
     {
-        if (SelectedModule is null)
+        if (SelectedModule is not { } module)
         {
             e.Handled = true;
+            return;
         }
+
+        Tools.OpenWithMenu.Fill(ModuleOpenWithMenu, Host, ToolTarget.ForFile(module.Path));
     }
 
     private void OnModuleOpenLocation(object sender, RoutedEventArgs e)

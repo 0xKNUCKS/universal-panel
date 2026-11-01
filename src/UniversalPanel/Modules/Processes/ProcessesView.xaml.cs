@@ -56,6 +56,9 @@ internal sealed partial class ProcessesView : UserControl
         }, Dispatcher);
         _filterDebounce.Stop();
 
+        // Tool identities for "Open with", read in the background so the menu is ready.
+        _ = Diagnostics.Guard.RunAsync("Tools.Inspect", Tools.ToolLibrary.EnsureInspectedAsync);
+
         sampler.Sampled += frame => Dispatcher.InvokeAsync(() => Apply(frame), DispatcherPriority.Background);
     }
 
