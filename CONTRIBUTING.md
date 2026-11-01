@@ -53,7 +53,7 @@ fixed types and scopes:
 | `modules` | `Modules/IPanelModule.cs` and shared module plumbing |
 | `processes` | Process monitor module |
 | `launcher` | Tools launcher module |
-| `python` | Python console / script runner module |
+| `terminal` | Terminal module (shells in tabs, terminal host) |
 | `network` | Network monitor module |
 | `settings` | Settings page (`Modules/Settings/`) and the persisted settings it edits |
 | `docs` | `docs/`, `README.md`, `CONTRIBUTING.md` (when the commit is docs-only) |

@@ -129,7 +129,7 @@ public partial class App : Application, ISingleInstanceApp
             OpenLogFolder: OpenLogFolder,
             OpenSettingsFolder: OpenSettingsFolder));
 
-        _panel = new PanelWindow([new ProcessesModule(), new Modules.Tools.ToolsModule(), .. PlaceholderModule.Defaults, settingsModule]);
+        _panel = new PanelWindow([new ProcessesModule(), new Modules.Tools.ToolsModule(), new Modules.Terminal.TerminalModule(), .. PlaceholderModule.Defaults, settingsModule]);
         _panel.Initialize();
 
         _hotkey = HotkeyFormat.FromSettings(settings);
@@ -148,6 +148,7 @@ public partial class App : Application, ISingleInstanceApp
     protected override void OnExit(ExitEventArgs e)
     {
         _tray?.Dispose();
+        Modules.Terminal.TerminalHost.Shutdown();
         base.OnExit(e);
     }
 

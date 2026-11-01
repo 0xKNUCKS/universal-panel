@@ -34,8 +34,6 @@ internal sealed class PlaceholderModule(string id, string title, SymbolRegular i
 
     public static IReadOnlyList<IPanelModule> Defaults { get; } =
     [
-        new PlaceholderModule("python", "Python", SymbolRegular.Code24,
-            "Interactive Python console and script runner, out-of-process."),
         new PlaceholderModule("network", "Network", SymbolRegular.Globe24,
             "TCP/UDP connections per process, and per-process bandwidth."),
     ];

@@ -2,6 +2,11 @@
 
 Builds of universal-panel include files that are not part of this repository's source.
 
+## Windows Terminal control (`Microsoft.Terminal.Wpf.dll`, `Microsoft.Terminal.Control.dll`)
+
+From the CI.Microsoft.Terminal.Wpf NuGet package (Windows Terminal 1.25), unmodified and signed by
+Microsoft. MIT License, Copyright (c) Microsoft Corporation. https://github.com/microsoft/terminal
+
 ## Detect It Easy 3.21 (`die/bin`, downloaded at build time)
 
 - **Detect It Easy** (`diec.exe`, `db/`): MIT License, Copyright (c) 2012-2026 hors.

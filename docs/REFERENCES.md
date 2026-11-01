@@ -21,6 +21,7 @@ Rules:
 | [NHotkey.Wpf](https://github.com/thomaslevesque/NHotkey) | 3.0.0 | Apache-2.0 | Global hotkey via `RegisterHotKey` (same package Flow Launcher uses) |
 | [H.NotifyIcon.Wpf](https://github.com/HavenDV/H.NotifyIcon) | 2.4.1 | MIT | Tray icon |
 | [Microsoft.Windows.CsWin32](https://github.com/microsoft/CsWin32) | 0.3.x | MIT | P/Invoke signatures generated from official Win32 metadata (no hand-written signatures) |
+| [CI.Microsoft.Terminal.Wpf](https://www.nuget.org/packages/CI.Microsoft.Terminal.Wpf) | 1.25.260303002 | MIT ([microsoft/terminal](https://github.com/microsoft/terminal)) | Windows Terminal's renderer as a WPF control (Terminal tab). Microsoft-signed binaries; pinned by hash in `packages.lock.json` |
 
 ## Ported / mirrored code
 
@@ -37,6 +38,9 @@ Reference snapshots (shallow clones, read 2026-10-29):
 | [winsiderss/systeminformer](https://github.com/winsiderss/systeminformer) | MIT | `c2f1489890f14de76b985c0142cbad154d92623d` |
 | [horsicq/Formats](https://github.com/horsicq/Formats) (Detect It Easy) | MIT | `dd3704da34e065b3754135bfce8cb3612804c227` |
 | [horsicq/Detect-It-Easy](https://github.com/horsicq/Detect-It-Easy) | MIT | `adc0617abd4d35e7449c767f62cf6ae276c67762` |
+| [microsoft/terminal](https://github.com/microsoft/terminal) (GUIConsole sample) | MIT | `703ef7f969d90d3f7e132b9a5f51a8815e77d586` |
+| [mitchcapper/EasyWindowsTerminalControl](https://github.com/mitchcapper/EasyWindowsTerminalControl) | Unclear (its LICENSE file is a saved HTML page): read for API usage only, nothing copied | `36cbce3683e15e55995e5586a7271ff92a5956fd` |
+| [flyingpie/windows-terminal-quake](https://github.com/flyingpie/windows-terminal-quake) | MIT | `5a30af25040de90dd833388036a15e93e3ead527` |
 
 ### Shell
 
@@ -68,6 +72,14 @@ Reference snapshots (shallow clones, read 2026-10-29):
 | `src/UniversalPanel/Native/ProcessControl.cs` | System Informer `SystemInformer/actions.c` `PhUiTerminateProcesses`, `PhUiSuspendProcesses`, `PhUiResumeProcesses`; `phnt/include/ntpsapi.h` | Least access per action (`PROCESS_TERMINATE`, `PROCESS_SUSPEND_RESUME`); exit status 1 on terminate; `NtSuspendProcess` / `NtResumeProcess`; `ProcessBreakOnTermination` query |
 | `src/UniversalPanel/Native/ProcessControl.cs` (`SetPriority`) | System Informer `SystemInformer/actions.c` `PhUiSetPriorityClassProcesses` | `PROCESS_SET_INFORMATION`; refuse System (PID 4), which can bugcheck some Windows versions |
 | `src/UniversalPanel/Modules/Processes/ProcessGuard.cs` | System Informer `SystemInformer/actions.c` `PhIsDangerousProcess`, `PhpShowContinueMessageProcesses` | Dangerous image-name list + System PID + break-on-termination = critical; terminate always confirms, suspend confirms only when dangerous |
+
+### Terminal
+
+| Our file | Mirrors | What was taken |
+|---|---|---|
+| `src/UniversalPanel/Native/PseudoConsole.cs` | microsoft/terminal `samples/ConPTY/GUIConsole/GUIConsole.ConPTY` (`PseudoConsole.cs`, `PseudoConsolePipe.cs`, `Processes/ProcessFactory.cs`) | Two anonymous pipes, `CreatePseudoConsole`, `CreateProcess` with `PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE`. Deviations: starts suspended and joins a kill-on-close job before running; `STARTF_USESTDHANDLES` with null handles so the shell can't inherit ours; `ClosePseudoConsole` when the shell exits so the output pipe ends |
+| `src/UniversalPanel/Modules/Terminal/TerminalSession.cs`, `TerminalTab.cs` | EasyWindowsTerminalControl `TermPTY` / `EasyTerminalControl` (API usage only) | `ITerminalConnection` (`Start`, `WriteInput`, `Resize`, `TerminalOutput`), `TerminalControl.SetTheme` after `Loaded`, `AutoResize`. Deviation: the shell runs in a separate unelevated host process, not in the panel |
+| `src/UniversalPanel/Modules/Terminal/TerminalView.xaml.cs` | windows-terminal-quake (behavior) | Drop-down terminal: shells keep running while hidden, focus goes to the terminal when shown. Deviation: the native terminal window is shown only after the slide-in, since an `HwndHost` can't follow a WPF transform |
 
 ### Error handling
 
@@ -107,7 +119,6 @@ documented `DWMWA_SYSTEMBACKDROP_TYPE` path instead, which avoids the layered-wi
 | Module | Primary reference | Secondary |
 |---|---|---|
 | Tools launcher / icons | PowerToys Run `Microsoft.Plugin.Program` (`IShellItemImageFactory`, `.lnk` resolution) | Flow Launcher `Plugins/Flow.Launcher.Plugin.Program` |
-| Python console | `code.InteractiveConsole` driver (CPython stdlib), CliWrap for piping | Job Objects with `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` |
 | Network monitor | System Informer network tab, `GetExtendedTcpTable` / `GetExtendedUdpTable` | TinyWall; TraceEvent for ETW bandwidth |
 
 These entries become rows in the "Ported / mirrored code" table as each module is implemented.

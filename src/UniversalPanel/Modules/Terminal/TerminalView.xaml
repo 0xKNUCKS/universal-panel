@@ -1,0 +1,167 @@
+<UserControl
+  x:Class="UniversalPanel.Modules.Terminal.TerminalView"
+  x:ClassModifier="internal"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:shell="clr-namespace:UniversalPanel.Shell"
+  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+>
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+
+    <Style x:Key="TabItem" TargetType="ListBoxItem">
+      <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+      <Setter Property="Margin" Value="0,0,4,0" />
+      <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+      <EventSetter Event="MouseDoubleClick" Handler="OnTabDoubleClick" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ListBoxItem">
+            <Border
+              x:Name="Frame"
+              Padding="10,4,4,4"
+              Background="Transparent"
+              BorderBrush="Transparent"
+              BorderThickness="1.5"
+              CornerRadius="6"
+            >
+              <ContentPresenter />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+              </Trigger>
+              <Trigger Property="IsSelected" Value="True">
+                <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </UserControl.Resources>
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <Grid Grid.Row="0" Margin="0,0,0,8">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <ListBox
+        x:Name="Tabs"
+        Background="Transparent"
+        BorderThickness="0"
+        ItemContainerStyle="{StaticResource TabItem}"
+        ScrollViewer.HorizontalScrollBarVisibility="Auto"
+        ScrollViewer.VerticalScrollBarVisibility="Disabled"
+        SelectionChanged="OnTabChanged"
+      >
+        <ListBox.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Orientation="Horizontal" />
+          </ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+        <ListBox.ContextMenu>
+          <ContextMenu>
+            <MenuItem Click="OnRenameTab" Header="Rename" />
+            <MenuItem Click="OnCloseTab" Header="Close" />
+          </ContextMenu>
+        </ListBox.ContextMenu>
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <StackPanel Orientation="Horizontal">
+              <TextBlock
+                x:Name="Title"
+                MaxWidth="140"
+                VerticalAlignment="Center"
+                Text="{Binding Name}"
+                TextTrimming="CharacterEllipsis"
+              />
+              <TextBox
+                x:Name="RenameBox"
+                MinWidth="80"
+                MaxWidth="160"
+                VerticalAlignment="Center"
+                KeyDown="OnRenameKeyDown"
+                LostFocus="OnRenameLostFocus"
+                Text="{Binding Name, Mode=OneTime}"
+                Visibility="Collapsed"
+              />
+              <ui:Button
+                Margin="6,0,0,0"
+                Padding="4"
+                Appearance="Transparent"
+                Click="OnCloseTabButton"
+                Icon="{ui:SymbolIcon Dismiss12}"
+                ToolTip="Close"
+              />
+            </StackPanel>
+            <DataTemplate.Triggers>
+              <DataTrigger Binding="{Binding Ended}" Value="True">
+                <Setter TargetName="Title" Property="Opacity" Value="0.5" />
+              </DataTrigger>
+              <DataTrigger Binding="{Binding IsRenaming}" Value="True">
+                <Setter TargetName="Title" Property="Visibility" Value="Collapsed" />
+                <Setter TargetName="RenameBox" Property="Visibility" Value="Visible" />
+              </DataTrigger>
+            </DataTemplate.Triggers>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+      <ui:Button
+        x:Name="NewButton"
+        Grid.Column="1"
+        Margin="8,0,0,0"
+        Padding="8,6"
+        Appearance="Secondary"
+        Click="OnNewClick"
+        Icon="{ui:SymbolIcon Add24}"
+        ToolTip="New terminal"
+      >
+        <ui:Button.ContextMenu>
+          <ContextMenu />
+        </ui:Button.ContextMenu>
+      </ui:Button>
+    </Grid>
+
+    <!--  One terminal control per tab; keys typed there (Esc included) belong to the shell.  -->
+    <Grid x:Name="Surfaces" Grid.Row="1" shell:PanelKeys.KeepsEscape="True" />
+
+    <StackPanel
+      x:Name="EmptyState"
+      Grid.Row="1"
+      HorizontalAlignment="Center"
+      VerticalAlignment="Center"
+    >
+      <TextBlock
+        Margin="0,0,0,12"
+        HorizontalAlignment="Center"
+        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+        Text="No terminals open."
+      />
+      <ItemsControl x:Name="QuickStart" HorizontalAlignment="Center">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel HorizontalAlignment="Center" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <ui:Button
+              Margin="4"
+              Appearance="Secondary"
+              Click="OnQuickStart"
+              Content="{Binding Name}"
+              Icon="{ui:SymbolIcon WindowConsole20}"
+            />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </Grid>
+</UserControl>
