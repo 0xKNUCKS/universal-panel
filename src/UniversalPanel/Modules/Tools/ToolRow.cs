@@ -27,7 +27,19 @@ internal sealed class ToolRow(ToolEntry entry) : INotifyPropertyChanged
     public string Path => Entry.Path;
 
     public ToolIdentity Identity { get; private set; } =
-        new(System.IO.Path.GetFileNameWithoutExtension(entry.Path), null, ToolTrust.Unknown, string.Empty, null);
+        new(WslTool.TryParse(entry.Path, out _, out var command) ? command : System.IO.Path.GetFileNameWithoutExtension(entry.Path), null, ToolTrust.Unknown, string.Empty, null);
+
+    /// <summary>A tool inside a WSL distro ("wsl:distro:command"), not a file.</summary>
+    public bool IsWsl => WslTool.TryParse(Path, out _, out _);
+
+    /// <summary>Set once <see cref="Apply"/> has run (identity and icon are known).</summary>
+    public bool Inspected { get; private set; }
+
+    /// <summary>The user's actions if they changed them, else the catalog's defaults for this tool.</summary>
+    public IReadOnlyList<ToolAction> Actions => Entry.Actions ?? ToolCatalog.DefaultActions(Identity.Known);
+
+    /// <summary>Command-line tools open in a console (double-click: usage, or a shell for WSL tools).</summary>
+    public bool IsConsoleTool => IsWsl || Categories.Contains(ToolCategories.CommandLine);
 
     public ImageSource? Icon { get; private set; }
 
@@ -93,6 +105,12 @@ internal sealed class ToolRow(ToolEntry entry) : INotifyPropertyChanged
     public (ToolIdentity Identity, ImageSource? Icon, bool Exists) Inspect()
     {
         var entry = Entry;
+        if (IsWsl)
+        {
+            var wsl = System.IO.Path.Combine(Environment.SystemDirectory, "wsl.exe");
+            return (ToolCatalog.Identify(entry.Path), LoadIcon(entry.Icon) ?? ProcessIcons.Get(wsl, IconSize), true);
+        }
+
         if (!File.Exists(entry.Path))
         {
             return (Identity, LoadIcon(entry.Icon), false);
@@ -138,6 +156,7 @@ internal sealed class ToolRow(ToolEntry entry) : INotifyPropertyChanged
     public void Apply((ToolIdentity Identity, ImageSource? Icon, bool Exists) result)
     {
         (Identity, Icon, Exists) = result;
+        Inspected = true;
         Changed();
     }
 

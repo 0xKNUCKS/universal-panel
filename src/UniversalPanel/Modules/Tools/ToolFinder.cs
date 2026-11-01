@@ -1,58 +1,77 @@
+using System.Diagnostics;
 using System.IO;
+using System.Text;
+using UniversalPanel.Diagnostics;
 using UniversalPanel.Native;
 
 namespace UniversalPanel.Modules.Tools;
 
 /// <summary>
-/// Looks for known tools in the usual places (Program Files, per-user Programs, Documents,
-/// Desktop, Downloads) and keeps only files <see cref="ToolCatalog"/> recognizes, one per tool
-/// and version. Links (junctions, symlinks) aren't followed.
+/// Looks for the tools in Catalog/tools.json: their "files" in the usual places (Program Files,
+/// per-user Programs, Documents, Desktop, Downloads, C:\Tools) and in the folders on PATH, and
+/// their "wsl" commands in each installed WSL distro. Keeps only what <see cref="ToolCatalog"/>
+/// recognizes, one per tool and version. Links (junctions, symlinks) aren't followed.
 /// </summary>
 internal static class ToolFinder
 {
-    // In order of preference when one install has several entry points (x96dbg picks 32/64-bit).
-    private static readonly string[] Candidates =
-    [
-        "x96dbg.exe", "x64dbg.exe", "ida64.exe", "ida.exe", "ghidraRun.bat", "die.exe", "HxD.exe", "HxD64.exe",
-        "SystemInformer.exe", "ProcessHacker.exe", "PE-bear.exe", "CFF Explorer.exe", "binaryninja.exe",
-        "dnSpy.exe", "ILSpy.exe", "imhex-gui.exe", "imhex.exe", "Cutter.exe", "Procmon64.exe", "Procmon.exe",
-        "procexp64.exe", "procexp.exe", "Wireshark.exe", "Postman.exe",
-    ];
+    private static readonly string Wsl = Path.Combine(Environment.SystemDirectory, "wsl.exe");
 
+    /// <returns>File paths, and "wsl:distro:command" for tools inside WSL.</returns>
     public static List<string> Find(CancellationToken ct)
     {
-        var priority = Candidates.Select((name, i) => (name, i)).ToDictionary(x => x.name, x => x.i, StringComparer.OrdinalIgnoreCase);
-        var options = new EnumerationOptions
+        // Preference when one install has several entry points: catalog order, then file order
+        // (x96dbg before x64dbg, ida64 before ida).
+        var priority = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var file in ToolCatalog.Tools.SelectMany(t => t.Files))
+        {
+            priority.TryAdd(file, priority.Count);
+        }
+
+        var found = new List<(string Path, ToolIdentity Identity, int Priority)>();
+        void Consider(string path)
+        {
+            if (priority.TryGetValue(Path.GetFileName(path), out int rank)
+                && ToolCatalog.Identify(path) is { Trust: not ToolTrust.Unknown } identity)
+            {
+                found.Add((path, identity, rank));
+            }
+        }
+
+        var deep = new EnumerationOptions
         {
             RecurseSubdirectories = true,
             MaxRecursionDepth = 5,
             IgnoreInaccessible = true,
             AttributesToSkip = FileAttributes.ReparsePoint | FileAttributes.System,
         };
-
-        var found = new List<(string Path, ToolIdentity Identity, int Priority)>();
         foreach (var root in Roots())
         {
-            foreach (var path in Directory.EnumerateFiles(root, "*.*", options))
+            foreach (var path in Directory.EnumerateFiles(root, "*.*", deep))
             {
                 ct.ThrowIfCancellationRequested();
-                if (priority.TryGetValue(Path.GetFileName(path), out int rank))
-                {
-                    var identity = ToolCatalog.Identify(path);
-                    if (identity.Trust != ToolTrust.Unknown)
-                    {
-                        found.Add((path, identity, rank));
-                    }
-                }
+                Consider(path);
+            }
+        }
+
+        // Command-line tools usually live on PATH (only the folders themselves, not below them).
+        var shallow = new EnumerationOptions { IgnoreInaccessible = true, AttributesToSkip = FileAttributes.ReparsePoint };
+        foreach (var folder in PathFolders())
+        {
+            foreach (var path in Directory.EnumerateFiles(folder, "*.exe", shallow))
+            {
+                ct.ThrowIfCancellationRequested();
+                Consider(path);
             }
         }
 
         // One entry per tool + version: preferred entry point, then the shortest path (x86 / x32
         // copies live in subfolders).
-        return found
+        var result = found
             .GroupBy(f => (f.Identity.Name, f.Identity.Version))
             .Select(g => g.OrderBy(f => f.Priority).ThenBy(f => f.Path.Length).First().Path)
             .ToList();
+        result.AddRange(FindInWsl(ct));
+        return result;
     }
 
     private static IEnumerable<string> Roots()
@@ -69,5 +88,76 @@ internal static class ToolFinder
             Path.Combine(Path.GetPathRoot(profile) ?? "C:\\", "Tools"),
         ];
         return roots.Where(r => r.Length > 0 && Directory.Exists(r)).Distinct(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static IEnumerable<string> PathFolders() =>
+        (Environment.GetEnvironmentVariable("PATH") ?? string.Empty)
+            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(Environment.ExpandEnvironmentVariables)
+            .Where(f => Path.IsPathFullyQualified(f) && Directory.Exists(f))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>The catalog's WSL commands present in each distro, as "wsl:distro:command".</summary>
+    private static List<string> FindInWsl(CancellationToken ct)
+    {
+        var result = new List<string>();
+        if (!File.Exists(Wsl))
+        {
+            return result;
+        }
+
+        var commands = ToolCatalog.Tools.Select(t => t.Wsl).OfType<string>().Where(c => WslTool.TryParse(WslTool.Make("d", c), out _, out _)).Distinct().ToList();
+        if (commands.Count == 0)
+        {
+            return result;
+        }
+
+        foreach (var distro in Distros())
+        {
+            ct.ThrowIfCancellationRequested();
+            // The names are passed as arguments ("$@"), not pasted into the script.
+            var present = Run(["-d", distro, "--exec", "sh", "-c", "for c in \"$@\"; do command -v \"$c\" >/dev/null 2>&1 && echo \"$c\"; done", "sh", .. commands], Encoding.UTF8);
+            result.AddRange(present.Where(commands.Contains).Select(c => WslTool.Make(distro, c)));
+        }
+
+        return result;
+    }
+
+    /// <summary>Installed distros ("wsl -l -q" prints UTF-16).</summary>
+    public static List<string> Distros() =>
+        Run(["-l", "-q"], Encoding.Unicode)
+            .Where(d => WslTool.TryParse(WslTool.Make(d, "x"), out _, out _))
+            .ToList();
+
+    private static List<string> Run(IEnumerable<string> arguments, Encoding encoding)
+    {
+        try
+        {
+            var start = new ProcessStartInfo(Wsl)
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                StandardOutputEncoding = encoding,
+            };
+            foreach (var argument in arguments)
+            {
+                start.ArgumentList.Add(argument);
+            }
+
+            using var process = Process.Start(start)!;
+            string output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit(15_000);
+            return output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(l => l.Trim('\0', '\uFEFF'))
+                .Where(l => l.Length > 0)
+                .ToList();
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            Log.Warn("Tools", "Couldn't ask WSL for its distros or tools.", ex);
+            return [];
+        }
     }
 }

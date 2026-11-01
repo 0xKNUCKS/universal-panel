@@ -21,7 +21,7 @@ internal sealed partial class ToolsView : UserControl
     private const string AllChip = "All";
 
     private readonly IModuleHost _host;
-    private readonly List<ToolRow> _rows = [];
+    private static List<ToolRow> Library => ToolLibrary.Rows; // shared with "Open with" in Processes
     private bool _inspected;
     private string? _category;
     private bool _fillingChips;
@@ -30,11 +30,6 @@ internal sealed partial class ToolsView : UserControl
     {
         _host = host;
         InitializeComponent();
-        foreach (var entry in Settings.Tools)
-        {
-            _rows.Add(new ToolRow(entry.Clone()));
-        }
-
         UpdateSectionsToggle();
         Rebuild();
     }
@@ -42,7 +37,7 @@ internal sealed partial class ToolsView : UserControl
     private static PanelSettings Settings => PanelSettings.Current;
 
     /// <summary>Re-reads identities and icons (tools get updated or moved while we're hidden).</summary>
-    public void Refresh() => _ = Guard.RunAsync("Tools.Inspect", () => InspectAsync(_rows.ToList()));
+    public void Refresh() => _ = Guard.RunAsync("Tools.Inspect", () => InspectAsync(Library.ToList()));
 
     private async Task InspectAsync(List<ToolRow> rows)
     {
@@ -78,7 +73,7 @@ internal sealed partial class ToolsView : UserControl
         bool sections = Settings.ToolSections;
 
         var tiles = new List<TileItem>();
-        foreach (var row in _rows.Where(r => r.Matches(query)))
+        foreach (var row in Library.Where(r => r.Matches(query)))
         {
             var categories = row.Categories;
             if (_category is not null && !categories.Contains(_category))
@@ -124,13 +119,13 @@ internal sealed partial class ToolsView : UserControl
         }
 
         FillChips();
-        EmptyHint.Visibility = _rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        EmptyHint.Visibility = Library.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <summary>"All" plus the categories that have tools, in section order.</summary>
     private void FillChips()
     {
-        var present = _rows.SelectMany(r => r.Categories).Distinct()
+        var present = Library.SelectMany(r => r.Categories).Distinct()
             .OrderBy(ToolCategories.Order).ThenBy(c => c, StringComparer.CurrentCultureIgnoreCase).ToList();
         if (_category is not null && !present.Contains(_category))
         {
@@ -278,67 +273,9 @@ internal sealed partial class ToolsView : UserControl
         }
     }
 
-    private async Task OpenAsync(ToolRow row)
-    {
-        if (!await CanStartAsync(row))
-        {
-            return;
-        }
+    private Task OpenAsync(ToolRow row) => ToolRunner.OpenAsync(_host, row);
 
-        try
-        {
-            ToolLauncher.Open(row.Path);
-        }
-        catch (ProcessActionException ex)
-        {
-            _host.ShowNotice($"Couldn't open {row.Name}", ex.Message, InfoBarSeverity.Warning);
-        }
-    }
-
-    private async Task RunAsAdminAsync(ToolRow row)
-    {
-        if (!await CanStartAsync(row))
-        {
-            return;
-        }
-
-        // An elevated panel gets no UAC prompt, so this dialog is the only check left.
-        if (Elevation.IsElevated && !await _host.ConfirmAsync(
-                $"Run {row.Name} as administrator?",
-                $"{row.Path}\n\n{(string.IsNullOrEmpty(row.Identity.Detail) ? "Not a recognized tool." : row.Identity.Detail)}\n\nThe panel is elevated, so Windows won't ask again.",
-                "Run as administrator", destructive: false))
-        {
-            return;
-        }
-
-        try
-        {
-            using (_host.SuppressAutoHide())
-            {
-                ToolLauncher.RunAsAdministrator(row.Path);
-            }
-        }
-        catch (ProcessActionException ex)
-        {
-            _host.ShowNotice($"Couldn't start {row.Name}", ex.Message, InfoBarSeverity.Warning);
-        }
-    }
-
-    /// <summary>The file must still be there; a broken or foreign signature needs a yes first.</summary>
-    private async Task<bool> CanStartAsync(ToolRow row)
-    {
-        row.Apply(await Task.Run(row.Inspect)); // the file may have changed since it was listed
-        if (!row.Exists)
-        {
-            _host.ShowNotice($"{row.Name} isn't there anymore", row.Path, InfoBarSeverity.Warning);
-            return false;
-        }
-
-        return row.Identity.Trust != ToolTrust.Warning || await _host.ConfirmAsync(
-            $"{row.Name} doesn't look official",
-            $"{row.Identity.Detail}\n\n{row.Path}",
-            "Open anyway", destructive: true);
-    }
+    private Task RunAsAdminAsync(ToolRow row) => ToolRunner.OpenAsync(_host, row, asAdministrator: true);
 
     // ---- managing the list -------------------------------------------------------------------
 
@@ -389,10 +326,10 @@ internal sealed partial class ToolsView : UserControl
         var added = new List<ToolRow>();
         foreach (var path in paths)
         {
-            if (ToolEntry.IsSafePath(path) && !_rows.Any(r => r.Path.Equals(path, StringComparison.OrdinalIgnoreCase)))
+            if (ToolEntry.IsSafePath(path) && !Library.Any(r => r.Path.Equals(path, StringComparison.OrdinalIgnoreCase)))
             {
                 var row = new ToolRow(new ToolEntry { Path = path });
-                _rows.Add(row);
+                Library.Add(row);
                 added.Add(row);
             }
         }
@@ -420,7 +357,7 @@ internal sealed partial class ToolsView : UserControl
             return;
         }
 
-        _rows.RemoveAll(tools.Contains);
+        Library.RemoveAll(tools.Contains);
         Save();
         Rebuild();
     }
@@ -467,8 +404,7 @@ internal sealed partial class ToolsView : UserControl
 
     private void Save()
     {
-        Settings.Tools = _rows.Select(r => r.Entry.Clone()).ToList();
-        Settings.SaveSoon();
+        ToolLibrary.Save();
     }
 
     private void ShowPage(Grid page)
@@ -567,7 +503,7 @@ internal sealed partial class ToolsView : UserControl
             return;
         }
 
-        if (_rows.Any(r => r != row && r.Path.Equals(path, StringComparison.OrdinalIgnoreCase)))
+        if (Library.Any(r => r != row && r.Path.Equals(path, StringComparison.OrdinalIgnoreCase)))
         {
             _host.ShowNotice("That program is already in the list", path, InfoBarSeverity.Warning);
             return;
@@ -646,7 +582,7 @@ internal sealed partial class ToolsView : UserControl
                 for (int i = 0; i < rows.Count; i++)
                 {
                     rows[i].Apply(results[i]);
-                    bool listed = _rows.Any(r => r.Path.Equals(rows[i].Path, StringComparison.OrdinalIgnoreCase));
+                    bool listed = Library.Any(r => r.Path.Equals(rows[i].Path, StringComparison.OrdinalIgnoreCase));
                     var found = new FoundTool(rows[i], listed);
                     found.PropertyChanged += (_, _) => UpdateAddFound();
                     _found.Add(found);
