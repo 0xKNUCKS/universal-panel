@@ -56,3 +56,4 @@ GetAncestor
 GetWindowText
 GetWindowThreadProcessId
 WindowFromPoint
+SetFocus

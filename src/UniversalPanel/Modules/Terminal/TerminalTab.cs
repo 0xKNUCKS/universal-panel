@@ -67,8 +67,28 @@ internal sealed class TerminalTab : INotifyPropertyChanged
         return new TerminalTab(session, control);
     }
 
-    /// <summary>Keyboard to the shell: the control's inner HwndHost forwards focus to the native window.</summary>
-    public void Focus() => (FindHost(Surface) ?? Surface).Focus();
+    /// <summary>
+    /// Keyboard to the shell. The terminal is a native window inside the control's HwndHost, which
+    /// exists only once the control is loaded, so a new tab waits for that.
+    /// </summary>
+    public void Focus()
+    {
+        if (FindHost(Surface) is { Handle: not 0 } host)
+        {
+            host.Focus();
+            Windows.Win32.PInvoke.SetFocus(new Windows.Win32.Foundation.HWND(host.Handle));
+        }
+        else
+        {
+            Surface.Dispatcher.BeginInvoke(() =>
+            {
+                if (FindHost(Surface) is { Handle: not 0 })
+                {
+                    Focus();
+                }
+            }, DispatcherPriority.ContextIdle);
+        }
+    }
 
     private static System.Windows.Interop.HwndHost? FindHost(DependencyObject parent)
     {

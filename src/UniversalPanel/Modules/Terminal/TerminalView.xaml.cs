@@ -12,10 +12,6 @@ namespace UniversalPanel.Modules.Terminal;
 // keep running while the panel is hidden; the panel only draws them.
 internal sealed partial class TerminalView : UserControl
 {
-    // The terminal is a native child window (HwndHost), which can't follow the panel's slide-in
-    // animation; it's shown once the slide (260 ms) is done.
-    private static readonly TimeSpan RevealDelay = TimeSpan.FromMilliseconds(280);
-
     private readonly IModuleHost _host;
     private readonly ObservableCollection<TerminalTab> _tabs = [];
     private List<TerminalProfile>? _profiles;
@@ -31,18 +27,14 @@ internal sealed partial class TerminalView : UserControl
 
     private TerminalTab? Selected => Tabs.SelectedItem as TerminalTab;
 
-    /// <summary>The module became visible: show the terminal after the slide, and focus it.</summary>
-    public void OnShown()
+    // The terminal is a native child window (HwndHost), which can't follow the panel's slide-in
+    // animation: hidden while the panel slides in, shown and focused once it's done.
+    public void Conceal() => Surfaces.Visibility = Visibility.Hidden;
+
+    public void Reveal()
     {
-        Surfaces.Visibility = Visibility.Hidden;
-        var timer = new DispatcherTimer { Interval = RevealDelay };
-        timer.Tick += (_, _) =>
-        {
-            timer.Stop();
-            Surfaces.Visibility = Visibility.Visible;
-            Selected?.Focus();
-        };
-        timer.Start();
+        Surfaces.Visibility = Visibility.Visible;
+        Selected?.Focus();
     }
 
     private async Task LoadProfilesAsync()

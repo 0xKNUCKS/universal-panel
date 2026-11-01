@@ -85,8 +85,12 @@
               <TextBox
                 x:Name="RenameBox"
                 MinWidth="80"
+                MinHeight="0"
                 MaxWidth="160"
+                Margin="0,-4"
+                Padding="6,1"
                 VerticalAlignment="Center"
+                shell:PanelKeys.KeepsEscape="True"
                 KeyDown="OnRenameKeyDown"
                 LostFocus="OnRenameLostFocus"
                 Text="{Binding Name, Mode=OneTime}"
