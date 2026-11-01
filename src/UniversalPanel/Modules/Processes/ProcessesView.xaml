@@ -178,6 +178,7 @@
           HorizontalContentAlignment="Stretch"
           MouseDoubleClick="OnGridDoubleClick"
           PreviewKeyDown="OnGridKeyDown"
+          PreviewMouseLeftButtonDown="OnGridLeftButtonDown"
           PreviewMouseRightButtonDown="OnGridRightButtonDown"
           ScrollViewer.HorizontalScrollBarVisibility="Disabled"
           SelectionMode="Single"

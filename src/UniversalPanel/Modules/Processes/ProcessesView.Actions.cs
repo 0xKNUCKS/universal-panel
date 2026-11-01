@@ -13,6 +13,30 @@ internal sealed partial class ProcessesView
 {
     private ProcessRow? Selected => Grid.SelectedItem as ProcessRow;
 
+    /// <summary>A click on empty space (no row, not the scrollbar) clears the selection.</summary>
+    private void OnGridLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        var source = e.OriginalSource as DependencyObject;
+        if (ItemsControl.ContainerFromElement(Grid, source) is null
+            && !IsInScrollBar(source))
+        {
+            Grid.UnselectAll();
+        }
+    }
+
+    private static bool IsInScrollBar(DependencyObject? element)
+    {
+        for (; element is not null; element = System.Windows.Media.VisualTreeHelper.GetParent(element))
+        {
+            if (element is System.Windows.Controls.Primitives.ScrollBar)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private void OnGridRightButtonDown(object sender, MouseButtonEventArgs e)
     {
         // Select the row under the cursor so the menu acts on what was right-clicked.
