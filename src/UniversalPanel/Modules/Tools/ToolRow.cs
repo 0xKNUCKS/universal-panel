@@ -108,19 +108,19 @@ internal sealed class ToolRow(ToolEntry entry) : INotifyPropertyChanged
         if (IsWsl)
         {
             var wsl = System.IO.Path.Combine(Environment.SystemDirectory, "wsl.exe");
-            return (ToolCatalog.Identify(entry.Path), LoadIcon(entry.Icon) ?? ProcessIcons.Get(wsl, IconSize), true);
+            return (ToolCatalog.Identify(entry.Path), LoadIcon(ToolIcons.PathOf(entry.Icon)) ?? ProcessIcons.Get(wsl, IconSize), true);
         }
 
         if (!File.Exists(entry.Path))
         {
-            return (Identity, LoadIcon(entry.Icon), false);
+            return (Identity, LoadIcon(ToolIcons.PathOf(entry.Icon)), false);
         }
 
         var identity = ToolCatalog.Identify(entry.Path);
         // Ghidra starts from a .bat; its own icon ships in support\.
         string ghidraIcon = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(entry.Path) ?? string.Empty, "support", "ghidra.ico");
         string defaultIcon = identity.Known == "ghidra" && File.Exists(ghidraIcon) ? ghidraIcon : entry.Path;
-        return (identity, LoadIcon(entry.Icon) ?? ProcessIcons.Get(defaultIcon, IconSize), true);
+        return (identity, LoadIcon(ToolIcons.PathOf(entry.Icon)) ?? ProcessIcons.Get(defaultIcon, IconSize), true);
     }
 
     /// <summary>A custom icon: images are decoded directly, anything else (.ico, .exe, .dll) through the shell.</summary>

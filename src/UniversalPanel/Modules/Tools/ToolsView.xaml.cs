@@ -585,9 +585,10 @@ internal sealed partial class ToolsView : UserControl
                 return;
             }
 
-            if (ToolRow.LoadIcon(path) is { } icon)
+            // Copied into the panel's icons folder, so moving or deleting the original doesn't lose it.
+            if (ToolIcons.Import(path) is { } name && ToolRow.LoadIcon(ToolIcons.PathOf(name)) is { } icon)
             {
-                _editIcon = path;
+                _editIcon = name;
                 EditIcon.Source = icon;
             }
             else

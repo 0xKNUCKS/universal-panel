@@ -10,15 +10,14 @@ internal static class ToolLibrary
 {
     private static List<ToolRow>? _rows;
 
-    public static List<ToolRow> Rows => _rows ??= PanelSettings.Current.Tools.Select(e => new ToolRow(e.Clone())).ToList();
+    public static List<ToolRow> Rows => _rows ??= ToolStore.Load().Select(e => new ToolRow(e)).ToList();
 
     /// <summary>Raised after the list or a tool's settings changed (and were saved).</summary>
     public static event Action? Changed;
 
     public static void Save()
     {
-        PanelSettings.Current.Tools = Rows.Select(r => r.Entry.Clone()).ToList();
-        PanelSettings.Current.SaveSoon();
+        ToolStore.Save(Rows.Select(r => r.Entry.Clone()).ToList());
         Changed?.Invoke();
     }
 

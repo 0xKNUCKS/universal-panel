@@ -16,7 +16,7 @@ internal sealed class ToolEntry
 
     public string? Name { get; set; }
 
-    /// <summary>Custom icon: an .ico, .exe, .dll or image file.</summary>
+    /// <summary>Custom icon: the name of a copy in the icons folder ("&lt;sha256&gt;.png"), see <see cref="ToolIcons"/>.</summary>
     public string? Icon { get; set; }
 
     /// <summary>Sections it's listed in; null means the catalog's defaults.</summary>
@@ -43,7 +43,7 @@ internal sealed class ToolEntry
         }
 
         Name = string.IsNullOrWhiteSpace(Name) ? null : Name.Trim()[..Math.Min(Name.Trim().Length, 80)];
-        Icon = IsSafePath(Icon) ? Icon : null;
+        Icon = ToolIcons.PathOf(Icon) is null ? null : Icon; // old absolute paths, "..\", other names: dropped
         Categories = Categories?.Where(c => !string.IsNullOrWhiteSpace(c) && c.Length <= 40).Distinct().Take(10).ToList();
         Actions = Actions?
             .Where(a => a is not null && a.Name.Length is > 0 and <= 80 && a.Args.Length <= 2000

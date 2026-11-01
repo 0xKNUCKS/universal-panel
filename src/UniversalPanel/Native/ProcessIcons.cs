@@ -55,6 +55,9 @@ internal static class ProcessIcons
         return icon ?? Fallback();
     }
 
+    /// <summary>The file's icon at exactly <paramref name="pixels"/> (not cached), e.g. to save a copy.</summary>
+    public static BitmapSource? ExtractAt(string path, int pixels) => Extract(path, Math.Clamp(pixels, 16, 256));
+
     private static int ToDevicePixels(int dip)
     {
         uint dpi = OperatingSystem.IsWindowsVersionAtLeast(10, 0, 14393) ? PInvoke.GetDpiForSystem() : 96;

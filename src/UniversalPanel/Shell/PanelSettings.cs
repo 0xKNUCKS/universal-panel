@@ -67,10 +67,6 @@ internal sealed class PanelSettings
 
     // --- Tools module ---------------------------------------------------------------------
 
-    /// <summary>Launcher entries (shown sorted by name). Older versions saved plain paths;
-    /// <see cref="ToolEntryConverter"/> still reads those.</summary>
-    public List<ToolEntry> Tools { get; set; } = [];
-
     /// <summary>Tools shown in collapsible sections by category (off: one grid).</summary>
     public bool ToolSections { get; set; } = true;
 
@@ -111,11 +107,6 @@ internal sealed class PanelSettings
             HotkeyKey = HotkeyModifiers = null;
         }
 
-        Tools = (Tools ?? [])
-            .Where(t => t is not null && t.Sanitize())
-            .DistinctBy(t => t.Path, StringComparer.OrdinalIgnoreCase)
-            .Take(200)
-            .ToList();
         ToolSectionsCollapsed = (ToolSectionsCollapsed ?? []).Where(c => c is { Length: > 0 and <= 40 }).Distinct().Take(20).ToList();
 
         if (string.IsNullOrWhiteSpace(PanelMonitor) || PanelMonitor.Length > 64)
