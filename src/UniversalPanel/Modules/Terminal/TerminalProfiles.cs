@@ -1,16 +1,24 @@
 using System.Diagnostics;
 using System.IO;
+using System.Windows.Media;
 using UniversalPanel.Modules.Tools;
+using UniversalPanel.Native;
 using UniversalPanel.Shell;
 
 namespace UniversalPanel.Modules.Terminal;
 
 /// <summary>A kind of shell the "+" menu offers: an absolute program path and its arguments.</summary>
-internal sealed record TerminalProfile(string Name, string Program, IReadOnlyList<string> Arguments, string Kind);
+internal sealed record TerminalProfile(string Name, string Program, IReadOnlyList<string> Arguments, string Kind)
+{
+    /// <summary>The program's own icon; a distro's from its package. Frozen.</summary>
+    public ImageSource? Icon { get; init; }
+}
 
 /// <summary>The shells installed here: PowerShell 7, Windows PowerShell, cmd, each WSL distro, Python.</summary>
 internal static class TerminalProfiles
 {
+    private const int IconSize = 16;
+
     public static List<TerminalProfile> Detect()
     {
         string system = Environment.SystemDirectory;
@@ -19,30 +27,31 @@ internal static class TerminalProfiles
         string pwsh = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "PowerShell", "7", "pwsh.exe");
         if (File.Exists(pwsh))
         {
-            profiles.Add(new("PowerShell", pwsh, ["-NoLogo"], "powershell"));
+            profiles.Add(new("PowerShell", pwsh, ["-NoLogo"], "powershell") { Icon = ProcessIcons.Get(pwsh, IconSize) });
         }
 
         string powershell = Path.Combine(system, "WindowsPowerShell", "v1.0", "powershell.exe");
         if (File.Exists(powershell))
         {
-            profiles.Add(new("Windows PowerShell", powershell, ["-NoLogo"], "powershell"));
+            profiles.Add(new("Windows PowerShell", powershell, ["-NoLogo"], "powershell") { Icon = ProcessIcons.Get(powershell, IconSize) });
         }
 
-        profiles.Add(new("Command Prompt", Path.Combine(system, "cmd.exe"), [], "cmd"));
+        string cmd = Path.Combine(system, "cmd.exe");
+        profiles.Add(new("Command Prompt", cmd, [], "cmd") { Icon = ProcessIcons.Get(cmd, IconSize) });
 
         string wsl = Path.Combine(system, "wsl.exe");
         if (File.Exists(wsl))
         {
             foreach (var distro in ToolFinder.Distros())
             {
-                profiles.Add(new(distro, wsl, ["-d", distro, "--cd", "~"], "wsl"));
+                profiles.Add(new(distro, wsl, ["-d", distro, "--cd", "~"], "wsl") { Icon = DistroIcons.Get(distro, IconSize) });
             }
         }
 
         if (FindPython() is { } python)
         {
             string version = FileVersionInfo.GetVersionInfo(python).ProductVersion is { Length: > 0 } v ? $"Python {v.Split(' ')[0]}" : "Python";
-            profiles.Add(new(version, python, [], "python"));
+            profiles.Add(new(version, python, [], "python") { Icon = ProcessIcons.Get(python, IconSize) });
         }
 
         return profiles;

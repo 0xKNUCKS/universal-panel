@@ -61,7 +61,11 @@ internal sealed partial class TerminalView : UserControl
         {
             foreach (var profile in _profiles)
             {
-                var item = new System.Windows.Controls.MenuItem { Header = profile.Name };
+                var item = new System.Windows.Controls.MenuItem
+                {
+                    Header = profile.Name,
+                    Icon = new System.Windows.Controls.Image { Source = profile.Icon, Width = 16, Height = 16 },
+                };
                 item.Click += (_, _) => Open(profile);
                 menu.Items.Add(item);
             }

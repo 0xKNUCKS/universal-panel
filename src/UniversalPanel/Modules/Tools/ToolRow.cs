@@ -105,10 +105,9 @@ internal sealed class ToolRow(ToolEntry entry) : INotifyPropertyChanged
     public (ToolIdentity Identity, ImageSource? Icon, bool Exists) Inspect()
     {
         var entry = Entry;
-        if (IsWsl)
+        if (WslTool.TryParse(entry.Path, out var distro, out _))
         {
-            var wsl = System.IO.Path.Combine(Environment.SystemDirectory, "wsl.exe");
-            return (ToolCatalog.Identify(entry.Path), LoadIcon(ToolIcons.PathOf(entry.Icon)) ?? ProcessIcons.Get(wsl, IconSize), true);
+            return (ToolCatalog.Identify(entry.Path), LoadIcon(ToolIcons.PathOf(entry.Icon)) ?? DistroIcons.Get(distro, IconSize), true);
         }
 
         if (!File.Exists(entry.Path))

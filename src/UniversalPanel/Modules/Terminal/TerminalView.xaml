@@ -75,6 +75,13 @@
         <ListBox.ItemTemplate>
           <DataTemplate>
             <StackPanel Orientation="Horizontal">
+              <Image
+                Width="16"
+                Height="16"
+                Margin="0,0,6,0"
+                VerticalAlignment="Center"
+                Source="{Binding Icon}"
+              />
               <TextBlock
                 x:Name="Title"
                 MaxWidth="140"
@@ -156,13 +163,18 @@
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
           <DataTemplate>
-            <ui:Button
-              Margin="4"
-              Appearance="Secondary"
-              Click="OnQuickStart"
-              Content="{Binding Name}"
-              Icon="{ui:SymbolIcon WindowConsole20}"
-            />
+            <ui:Button Margin="4" Appearance="Secondary" Click="OnQuickStart">
+              <StackPanel Orientation="Horizontal">
+                <Image
+                  Width="16"
+                  Height="16"
+                  Margin="0,0,8,0"
+                  VerticalAlignment="Center"
+                  Source="{Binding Icon}"
+                />
+                <TextBlock VerticalAlignment="Center" Text="{Binding Name}" />
+              </StackPanel>
+            </ui:Button>
           </DataTemplate>
         </ItemsControl.ItemTemplate>
       </ItemsControl>

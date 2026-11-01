@@ -34,6 +34,8 @@ internal sealed class TerminalTab : INotifyPropertyChanged
 
     public string Name { get => Session.Name; set => Session.Name = value; }
 
+    public ImageSource? Icon { get; private init; }
+
     public bool Ended => Session.Ended;
 
     public bool IsRenaming
@@ -64,7 +66,7 @@ internal sealed class TerminalTab : INotifyPropertyChanged
             12,
             Background);
         control.Connection = session;
-        return new TerminalTab(session, control);
+        return new TerminalTab(session, control) { Icon = profile.Icon };
     }
 
     /// <summary>
