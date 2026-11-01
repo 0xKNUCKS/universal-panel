@@ -123,6 +123,14 @@ public partial class PanelWindow : FluentWindow, IModuleHost
         return new Scope(() => _autoHideSuppressions--);
     }
 
+    public void ShowModule(string id)
+    {
+        if (ModuleList.ItemsSource is IEnumerable<IPanelModule> modules && modules.FirstOrDefault(m => m.Id == id) is { } module)
+        {
+            ModuleList.SelectedItem = module;
+        }
+    }
+
     public void ShowNotice(string title, string message, InfoBarSeverity severity)
     {
         NoticeBar.Title = title;

@@ -19,4 +19,7 @@ internal interface IModuleHost
     /// destructive action by accident. Returns false if the panel is hidden while it's open.
     /// </summary>
     Task<bool> ConfirmAsync(string title, string message, string confirmText, bool destructive);
+
+    /// <summary>Switches the panel to another module (e.g. Processes asking the Terminal for a shell).</summary>
+    void ShowModule(string id);
 }
