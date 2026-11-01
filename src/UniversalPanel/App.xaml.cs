@@ -32,6 +32,15 @@ public partial class App : Application, ISingleInstanceApp
     public static void Main()
     {
         HardenDllSearchPath();
+
+        // Console window for a command-line tool action: no panel, no tray, no single-instance lock.
+        var arguments = Environment.GetCommandLineArgs();
+        if (arguments.Length > 1 && arguments[1] == ConsoleRunner.Switch)
+        {
+            Environment.ExitCode = ConsoleRunner.Run(arguments[2..]);
+            return;
+        }
+
         Log.Start();
         Log.Info("App", $"Starting {typeof(App).Assembly.GetName().Version} on {Environment.OSVersion}, x64={Environment.Is64BitProcess}");
 

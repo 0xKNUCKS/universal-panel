@@ -1,0 +1,390 @@
+// Tools the panel recognizes, and what it can do with them. Adding a tool or changing a default
+// argument is a one-file change: see docs/TOOLS.md for every field. Users can change any action
+// from the tool's Edit page; their changes are kept separately, so updates here don't overwrite them.
+//
+// match      How the panel recognizes the file: version-info fields (as shown in the file's
+//            Properties > Details), all must match. "*" is a wildcard; matching ignores case.
+// signer     If the publisher signs the file: part of the signer's name. A file with this valid
+//            signature shows "Verified"; without one, "Identified".
+// files      File names "Find installed tools" looks for, preferred first.
+// wsl        For tools inside WSL distros: the command name to look for.
+// actions    target: "process" (uses {pid}), "file" ({path}, {dir}, {name}), or "none".
+//            run:    "window" (a normal app) or "console" (output shown in a console window).
+//            args:   placeholders {pid} {path} {dir} {name}. Each argument stays one argument,
+//                    spaces and all; nothing is passed through a shell. Quotes are optional.
+{
+  "tools": [
+    {
+      "id": "ida",
+      "name": "IDA",
+      "categories": ["Reverse engineering"],
+      "match": { "CompanyName": "Hex-Rays SA", "ProductName": "*Interactive Disassembler*" },
+      "files": ["ida64.exe", "ida.exe"],
+      "actions": [
+        { "id": "open", "name": "Open in IDA", "target": "file", "args": "{path}" }
+      ]
+    },
+    {
+      "id": "ghidra",
+      "name": "Ghidra",
+      "categories": ["Reverse engineering"],
+      "detect": "ghidra",
+      "files": ["ghidraRun.bat"],
+      "actions": []
+    },
+    {
+      "id": "binary-ninja",
+      "name": "Binary Ninja",
+      "categories": ["Reverse engineering"],
+      "match": { "ProductName": "*Binary Ninja*" },
+      "signer": "Vector 35",
+      "files": ["binaryninja.exe"],
+      "actions": [
+        { "id": "open", "name": "Open in Binary Ninja", "target": "file", "args": "{path}" }
+      ]
+    },
+    {
+      "id": "cutter",
+      "name": "Cutter",
+      "categories": ["Reverse engineering"],
+      "match": { "ProductName": "*Cutter*" },
+      "files": ["Cutter.exe"],
+      "actions": [
+        { "id": "open", "name": "Open in Cutter", "target": "file", "args": "{path}" }
+      ]
+    },
+    {
+      "id": "x64dbg",
+      "name": "x64dbg",
+      "categories": ["Reverse engineering", "Debugging"],
+      "match": { "ProductName": "x64dbg" },
+      "signer": "Duncan Ogilvie",
+      "version": "buildDate",
+      "files": ["x96dbg.exe", "x64dbg.exe"],
+      "actions": [
+        // x96dbg picks the 32- or 64-bit debugger itself (x64dbg_launcher.cpp, "-p PID").
+        { "id": "attach", "name": "Attach x64dbg", "target": "process", "args": "-p {pid}" },
+        { "id": "open", "name": "Open in x64dbg", "target": "file", "args": "{path}" }
+      ]
+    },
+    {
+      "id": "windbg",
+      "name": "WinDbg",
+      "categories": ["Debugging"],
+      "match": { "ProductName": "*WinDbg*" },
+      "signer": "Microsoft",
+      "files": ["windbg.exe"],
+      "actions": [
+        { "id": "attach", "name": "Attach WinDbg", "target": "process", "args": "-p {pid}" }
+      ]
+    },
+    {
+      "id": "dnspy",
+      "name": "dnSpy",
+      "categories": ["Reverse engineering", "Debugging", ".NET"],
+      "match": { "ProductName": "*dnSpy*" },
+      "files": ["dnSpy.exe"],
+      "actions": [
+        { "id": "open", "name": "Open in dnSpy", "target": "file", "args": "{path}" }
+      ]
+    },
+    {
+      "id": "ilspy",
+      "name": "ILSpy",
+      "categories": ["Reverse engineering", ".NET"],
+      "match": { "ProductName": "*ILSpy*" },
+      "files": ["ILSpy.exe"],
+      "actions": [
+        { "id": "open", "name": "Open in ILSpy", "target": "file", "args": "{path}" }
+      ]
+    },
+    {
+      "id": "die",
+      "name": "Detect It Easy",
+      "categories": ["Binary analysis"],
+      "match": { "CompanyName": "NTInfo", "ProductName": "Detect It Easy" },
+      "files": ["die.exe"],
+      "actions": [
+        { "id": "open", "name": "Open in Detect It Easy", "target": "file", "args": "{path}" }
+      ]
+    },
+    {
+      "id": "pe-bear",
+      "name": "PE-bear",
+      "categories": ["Binary analysis"],
+      "match": { "ProductName": "PE-bear" },
+      "files": ["PE-bear.exe"],
+      "actions": [
+        { "id": "open", "name": "Open in PE-bear", "target": "file", "args": "{path}" }
+      ]
+    },
+    {
+      "id": "cff-explorer",
+      "name": "CFF Explorer",
+      "categories": ["Binary analysis"],
+      "match": { "ProductName": "CFF Explorer" },
+      "files": ["CFF Explorer.exe"],
+      "actions": [
+        { "id": "open", "name": "Open in CFF Explorer", "target": "file", "args": "{path}" }
+      ]
+    },
+    {
+      "id": "hxd",
+      "name": "HxD",
+      "categories": ["Binary analysis"],
+      "match": { "ProductName": "*HxD*" },
+      "files": ["HxD.exe", "HxD64.exe"],
+      "actions": [
+        { "id": "open", "name": "Open in HxD", "target": "file", "args": "{path}" }
+      ]
+    },
+    {
+      "id": "imhex",
+      "name": "ImHex",
+      "categories": ["Binary analysis"],
+      "match": { "ProductName": "*ImHex*" },
+      "files": ["imhex-gui.exe", "imhex.exe"],
+      "actions": [
+        { "id": "open", "name": "Open in ImHex", "target": "file", "args": "{path}" }
+      ]
+    },
+    {
+      "id": "system-informer",
+      "name": "System Informer",
+      "categories": ["System"],
+      "match": { "ProductName": "System Informer" },
+      "signer": "Winsider Seminars & Solutions",
+      "files": ["SystemInformer.exe"],
+      "actions": []
+    },
+    {
+      "id": "process-hacker",
+      "name": "Process Hacker",
+      "categories": ["System"],
+      "match": { "ProductName": "Process Hacker" },
+      "files": ["ProcessHacker.exe"],
+      "actions": []
+    },
+    {
+      "id": "procmon",
+      "name": "Process Monitor",
+      "categories": ["System"],
+      "match": { "CompanyName": "*Sysinternals*", "ProductName": "*Process Monitor*" },
+      "signer": "Microsoft",
+      "files": ["Procmon64.exe", "Procmon.exe"],
+      "actions": []
+    },
+    {
+      "id": "procexp",
+      "name": "Process Explorer",
+      "categories": ["System"],
+      "match": { "CompanyName": "*Sysinternals*", "ProductName": "*Process Explorer*" },
+      "signer": "Microsoft",
+      "files": ["procexp64.exe", "procexp.exe"],
+      "actions": []
+    },
+    {
+      "id": "sysinternals-strings",
+      "name": "Strings (Sysinternals)",
+      "categories": ["Command-line"],
+      "match": { "CompanyName": "*Sysinternals*", "OriginalFilename": "strings*" },
+      "signer": "Microsoft",
+      "files": ["strings64.exe", "strings.exe"],
+      "actions": [
+        { "id": "strings", "name": "Strings (8+ chars)", "target": "file", "run": "console", "args": "-n 8 {path}" }
+      ]
+    },
+    {
+      "id": "sigcheck",
+      "name": "Sigcheck",
+      "categories": ["Command-line"],
+      "match": { "CompanyName": "*Sysinternals*", "OriginalFilename": "sigcheck*" },
+      "signer": "Microsoft",
+      "files": ["sigcheck64.exe", "sigcheck.exe"],
+      "actions": [
+        { "id": "check", "name": "Sigcheck (signature, hashes)", "target": "file", "run": "console", "args": "-a -h {path}" }
+      ]
+    },
+    {
+      "id": "procdump",
+      "name": "ProcDump",
+      "categories": ["Command-line"],
+      "match": { "CompanyName": "*Sysinternals*", "OriginalFilename": "procdump*" },
+      "signer": "Microsoft",
+      "files": ["procdump64.exe", "procdump.exe"],
+      "actions": [
+        { "id": "full", "name": "ProcDump full dump", "target": "process", "run": "console", "args": "-ma {pid}" }
+      ]
+    },
+    {
+      "id": "handle",
+      "name": "Handle",
+      "categories": ["Command-line"],
+      "match": { "CompanyName": "*Sysinternals*", "OriginalFilename": "handle*" },
+      "signer": "Microsoft",
+      "files": ["handle64.exe", "handle.exe"],
+      "actions": [
+        { "id": "list", "name": "Handle (list handles)", "target": "process", "run": "console", "args": "-p {pid}" }
+      ]
+    },
+    {
+      "id": "listdlls",
+      "name": "ListDLLs",
+      "categories": ["Command-line"],
+      "match": { "CompanyName": "*Sysinternals*", "OriginalFilename": "listdlls*" },
+      "signer": "Microsoft",
+      "files": ["Listdlls64.exe", "Listdlls.exe"],
+      "actions": [
+        { "id": "list", "name": "ListDLLs", "target": "process", "run": "console", "args": "{pid}" }
+      ]
+    },
+    {
+      // Any other Sysinternals tool: shown under its own description ("Autoruns", "TCPView", ...).
+      "id": "sysinternals",
+      "name": "Sysinternals",
+      "nameFrom": "FileDescription",
+      "categories": ["System"],
+      "match": { "CompanyName": "*Sysinternals*" },
+      "signer": "Microsoft",
+      "actions": []
+    },
+    {
+      "id": "pe-sieve",
+      "name": "PE-sieve",
+      "categories": ["Command-line", "Binary analysis"],
+      "match": { "ProductName": "*PE-sieve*" },
+      "files": ["pe-sieve64.exe", "pe-sieve32.exe"],
+      "actions": [
+        { "id": "scan", "name": "PE-sieve (scan for implants)", "target": "process", "run": "console", "args": "/pid {pid}" }
+      ]
+    },
+    {
+      "id": "wireshark",
+      "name": "Wireshark",
+      "categories": ["Network"],
+      "match": { "ProductName": "Wireshark" },
+      "signer": "Wireshark Foundation",
+      "files": ["Wireshark.exe"],
+      "actions": []
+    },
+    {
+      "id": "postman",
+      "name": "Postman",
+      "categories": ["Network"],
+      "match": { "ProductName": "Postman" },
+      "signer": "Postman",
+      "files": ["Postman.exe"],
+      "actions": []
+    },
+
+    // ---- Inside WSL distros (found per distro; run with "wsl --exec", never through a shell) ----
+    {
+      "id": "wsl-strings",
+      "name": "strings",
+      "categories": ["Command-line"],
+      "wsl": "strings",
+      "actions": [
+        { "id": "strings", "name": "strings (8+ chars)", "target": "file", "run": "console", "args": "-n 8 {path}" }
+      ]
+    },
+    {
+      "id": "wsl-file",
+      "name": "file",
+      "categories": ["Command-line"],
+      "wsl": "file",
+      "actions": [
+        { "id": "type", "name": "file (identify type)", "target": "file", "run": "console", "args": "{path}" }
+      ]
+    },
+    {
+      "id": "wsl-objdump",
+      "name": "objdump",
+      "categories": ["Command-line"],
+      "wsl": "objdump",
+      "actions": [
+        { "id": "headers", "name": "objdump (headers)", "target": "file", "run": "console", "args": "-x {path}" },
+        { "id": "disasm", "name": "objdump (disassemble, Intel)", "target": "file", "run": "console", "args": "-d -M intel {path}" }
+      ]
+    },
+    {
+      "id": "wsl-hexdump",
+      "name": "hexdump",
+      "categories": ["Command-line"],
+      "wsl": "hexdump",
+      "actions": [
+        { "id": "dump", "name": "hexdump", "target": "file", "run": "console", "args": "-C {path}" }
+      ]
+    },
+    {
+      "id": "wsl-binwalk",
+      "name": "binwalk",
+      "categories": ["Command-line", "Binary analysis"],
+      "wsl": "binwalk",
+      "actions": [
+        { "id": "scan", "name": "binwalk (embedded files)", "target": "file", "run": "console", "args": "{path}" }
+      ]
+    },
+    {
+      "id": "wsl-rabin2",
+      "name": "rabin2",
+      "categories": ["Command-line", "Binary analysis"],
+      "wsl": "rabin2",
+      "actions": [
+        { "id": "info", "name": "rabin2 (binary info)", "target": "file", "run": "console", "args": "-I {path}" }
+      ]
+    },
+    {
+      "id": "wsl-r2",
+      "name": "radare2",
+      "categories": ["Command-line", "Reverse engineering"],
+      "wsl": "r2",
+      "actions": [
+        { "id": "open", "name": "radare2 (analyze)", "target": "file", "run": "console", "args": "-A {path}" }
+      ]
+    },
+    {
+      "id": "wsl-upx",
+      "name": "upx",
+      "categories": ["Command-line"],
+      "wsl": "upx",
+      "actions": [
+        { "id": "list", "name": "upx (is it packed?)", "target": "file", "run": "console", "args": "-l {path}" }
+      ]
+    },
+    {
+      "id": "wsl-exiftool",
+      "name": "exiftool",
+      "categories": ["Command-line"],
+      "wsl": "exiftool",
+      "actions": [
+        { "id": "meta", "name": "exiftool (metadata)", "target": "file", "run": "console", "args": "{path}" }
+      ]
+    },
+    {
+      "id": "wsl-capa",
+      "name": "capa",
+      "categories": ["Command-line", "Binary analysis"],
+      "wsl": "capa",
+      "actions": [
+        { "id": "scan", "name": "capa (capabilities)", "target": "file", "run": "console", "args": "{path}" }
+      ]
+    },
+    {
+      "id": "wsl-floss",
+      "name": "floss",
+      "categories": ["Command-line", "Binary analysis"],
+      "wsl": "floss",
+      "actions": [
+        { "id": "strings", "name": "floss (decoded strings)", "target": "file", "run": "console", "args": "{path}" }
+      ]
+    },
+    {
+      "id": "wsl-yara",
+      "name": "yara",
+      "categories": ["Command-line"],
+      "wsl": "yara",
+      // No default action: yara needs your rules file. Add one, e.g. args "/home/me/rules.yar {path}".
+      "actions": []
+    }
+  ]
+}

@@ -17,18 +17,19 @@ internal static class ToolLauncher
     private const int ErrorCancelled = 1223; // the user said no to UAC
 
     /// <summary>Starts the file with the user's normal (unelevated) rights.</summary>
-    public static void Open(string path)
+    /// <param name="arguments">An already-quoted command line (see <see cref="ToolCommand"/>).</param>
+    public static void Open(string path, string arguments = "", string? directory = null)
     {
-        string directory = Path.GetDirectoryName(path) ?? string.Empty;
+        directory ??= Path.GetDirectoryName(path) ?? string.Empty;
         try
         {
             if (Elevation.IsElevated)
             {
-                ShellExecuteAsExplorer(path, directory);
+                ShellExecuteAsExplorer(path, arguments, directory);
             }
             else
             {
-                using var _ = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path)
+                using var _ = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path, arguments)
                 {
                     UseShellExecute = true,
                     WorkingDirectory = directory,
@@ -42,15 +43,15 @@ internal static class ToolLauncher
     }
 
     /// <summary>Starts the file elevated (UAC prompt unless the panel is elevated). False if the user cancelled.</summary>
-    public static bool RunAsAdministrator(string path)
+    public static bool RunAsAdministrator(string path, string arguments = "", string? directory = null)
     {
         try
         {
-            using var _ = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path)
+            using var _ = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path, arguments)
             {
                 UseShellExecute = true,
                 Verb = "runas",
-                WorkingDirectory = Path.GetDirectoryName(path) ?? string.Empty,
+                WorkingDirectory = directory ?? Path.GetDirectoryName(path) ?? string.Empty,
             });
             return true;
         }
@@ -64,7 +65,7 @@ internal static class ToolLauncher
         }
     }
 
-    private static void ShellExecuteAsExplorer(string path, string directory)
+    private static void ShellExecuteAsExplorer(string path, string arguments, string directory)
     {
         var shellWindows = (IShellWindows)Activator.CreateInstance(Type.GetTypeFromCLSID(CLSID_ShellWindows, throwOnError: true)!)!;
         try
@@ -78,7 +79,7 @@ internal static class ToolLauncher
             var dispatch = view.GetItemObject(SVGIO_BACKGROUND, IID_IDispatch);
             dynamic folderView = dispatch;
             dynamic shell = folderView.Application;
-            shell.ShellExecute(path, string.Empty, directory, "open", SW_SHOWNORMAL);
+            shell.ShellExecute(path, arguments, directory, "open", SW_SHOWNORMAL);
         }
         finally
         {

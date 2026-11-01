@@ -22,12 +22,22 @@ internal sealed class ToolEntry
     /// <summary>Sections it's listed in; null means the catalog's defaults.</summary>
     public List<string>? Categories { get; set; }
 
-    public ToolEntry Clone() => new() { Path = Path, Name = Name, Icon = Icon, Categories = Categories?.ToList() };
+    /// <summary>The user's actions for this tool; null means the catalog's defaults (Catalog/tools.json).</summary>
+    public List<Native.ToolAction>? Actions { get; set; }
+
+    public ToolEntry Clone() => new()
+    {
+        Path = Path,
+        Name = Name,
+        Icon = Icon,
+        Categories = Categories?.ToList(),
+        Actions = Actions?.Select(a => a.Clone()).ToList(),
+    };
 
     /// <summary>False for anything a hand-edited settings file shouldn't contain.</summary>
     public bool Sanitize()
     {
-        if (!IsSafePath(Path))
+        if (!IsSafePath(Path) && !Native.WslTool.TryParse(Path, out _, out _))
         {
             return false;
         }
@@ -35,6 +45,12 @@ internal sealed class ToolEntry
         Name = string.IsNullOrWhiteSpace(Name) ? null : Name.Trim()[..Math.Min(Name.Trim().Length, 80)];
         Icon = IsSafePath(Icon) ? Icon : null;
         Categories = Categories?.Where(c => !string.IsNullOrWhiteSpace(c) && c.Length <= 40).Distinct().Take(10).ToList();
+        Actions = Actions?
+            .Where(a => a is not null && a.Name.Length is > 0 and <= 80 && a.Args.Length <= 2000
+                && a.Target is Native.ToolTargets.Process or Native.ToolTargets.File or Native.ToolTargets.None
+                && a.Run is Native.ToolRunModes.Window or Native.ToolRunModes.Console)
+            .Take(30)
+            .ToList();
         return true;
     }
 
@@ -76,6 +92,9 @@ internal sealed class ToolEntryConverter : JsonConverter<ToolEntry>
                 case nameof(ToolEntry.Categories):
                     entry.Categories = reader.TokenType == JsonTokenType.StartArray ? JsonSerializer.Deserialize<List<string>>(ref reader, options) : null;
                     break;
+                case nameof(ToolEntry.Actions):
+                    entry.Actions = reader.TokenType == JsonTokenType.StartArray ? JsonSerializer.Deserialize<List<Native.ToolAction>>(ref reader, options) : null;
+                    break;
                 default:
                     reader.Skip();
                     break;
@@ -103,6 +122,12 @@ internal sealed class ToolEntryConverter : JsonConverter<ToolEntry>
         {
             writer.WritePropertyName(nameof(ToolEntry.Categories));
             JsonSerializer.Serialize(writer, value.Categories, options);
+        }
+
+        if (value.Actions is not null)
+        {
+            writer.WritePropertyName(nameof(ToolEntry.Actions));
+            JsonSerializer.Serialize(writer, value.Actions, options);
         }
 
         writer.WriteEndObject();

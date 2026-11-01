@@ -101,7 +101,7 @@ internal sealed class ToolRow(ToolEntry entry) : INotifyPropertyChanged
         var identity = ToolCatalog.Identify(entry.Path);
         // Ghidra starts from a .bat; its own icon ships in support\.
         string ghidraIcon = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(entry.Path) ?? string.Empty, "support", "ghidra.ico");
-        string defaultIcon = identity.Known == "Ghidra" && File.Exists(ghidraIcon) ? ghidraIcon : entry.Path;
+        string defaultIcon = identity.Known == "ghidra" && File.Exists(ghidraIcon) ? ghidraIcon : entry.Path;
         return (identity, LoadIcon(entry.Icon) ?? ProcessIcons.Get(defaultIcon, IconSize), true);
     }
 

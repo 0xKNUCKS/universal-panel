@@ -9,9 +9,10 @@ internal static class ToolCategories
     public const string DotNet = ".NET";
     public const string System = "System";
     public const string Network = "Network";
+    public const string CommandLine = "Command-line";
     public const string Other = "Other";
 
-    public static IReadOnlyList<string> All { get; } = [Reversing, Debugging, Binary, DotNet, System, Network, Other];
+    public static IReadOnlyList<string> All { get; } = [Reversing, Debugging, Binary, DotNet, System, Network, CommandLine, Other];
 
     /// <summary>Position for sorting; unknown names (from an edited settings file) go last.</summary>
     public static int Order(string category)
