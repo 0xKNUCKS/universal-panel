@@ -23,8 +23,16 @@ internal sealed record ToolTarget(int? Pid, string? Path)
 
     public static ToolTarget ForFile(string path) => new(null, path);
 
-    /// <summary>Stand-in values for the Edit page's preview.</summary>
-    public static ToolTarget Sample { get; } = new(1234, @"C:\Program Files\Example App\example.exe");
+    /// <summary>
+    /// Stand-in values for the Edit page's preview, matching what the action really gets: a process
+    /// action gets a PID and its exe; a file action (a process's exe or a module) only a path.
+    /// </summary>
+    public static ToolTarget SampleFor(string actionTarget) => actionTarget switch
+    {
+        ToolTargets.Process => new(1234, @"C:\Program Files\Example App\example.exe"),
+        ToolTargets.File => new(null, @"C:\Program Files\Example App\example.exe"),
+        _ => new(null, null),
+    };
 }
 
 /// <summary>A resolved command: the program, its arguments (one string each) and where to run it.</summary>
@@ -134,19 +142,29 @@ internal sealed record ToolCommand(string Program, IReadOnlyList<string> Argumen
         for (int i = 0; i < token.Length; i++)
         {
             int close = token[i] == '{' ? token.IndexOf('}', i + 1) : -1;
-            if (close > i && values.TryGetValue(token[(i + 1)..close], out var value))
+            string word = close > i ? token[(i + 1)..close] : string.Empty;
+            if (close > i && values.TryGetValue(word, out var value))
             {
-                result.Append(value ?? throw new ToolCommandException($"{{{token[(i + 1)..close]}}} has no value for this target."));
+                result.Append(value ?? throw new ToolCommandException(Missing(word)));
                 i = close;
+            }
+            else if (word.Length > 0 && word.All(char.IsAsciiLetter))
+            {
+                // A typo like {file} would otherwise reach the tool as literal text.
+                throw new ToolCommandException($"{{{word}}} isn't a placeholder. Use {{pid}}, {{path}}, {{dir}} or {{name}}.");
             }
             else
             {
-                result.Append(token[i]); // anything else, including unknown {words}, stays as typed
+                result.Append(token[i]); // other braces ({0}, JSON) stay as typed
             }
         }
 
         return result.ToString();
     }
+
+    private static string Missing(string word) => word.ToLowerInvariant() == "pid"
+        ? "{pid} only works when the action runs on a process (a file or module has no PID)."
+        : $"{{{word}}} has no value here: the file's path isn't known.";
 
     /// <summary>Quotes one argument so CommandLineToArgvW / the MSVC runtime read it back unchanged.</summary>
     public static string Quote(string argument)

@@ -504,6 +504,52 @@ internal sealed partial class ToolsView : UserControl
             () => EditPath.Text.Trim().Trim('"'),
             expanded: true));
 
+    /// <summary>Types the clicked placeholder into that card's Arguments box, at the cursor.</summary>
+    private void OnInsertPlaceholder(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: EditableAction.Choice placeholder } button)
+        {
+            return;
+        }
+
+        // The button sits in the card's template; walk up to the card and find its Arguments box.
+        DependencyObject? node = button;
+        while (node is not null && (node as FrameworkElement)?.DataContext is not EditableAction)
+        {
+            node = System.Windows.Media.VisualTreeHelper.GetParent(node);
+        }
+
+        if (node is FrameworkElement { DataContext: EditableAction } card && FindChild<System.Windows.Controls.TextBox>(card, "ArgsBox") is { } box)
+        {
+            int at = box.CaretIndex;
+            string before = box.Text[..at];
+            string insert = (before.Length > 0 && !char.IsWhiteSpace(before[^1]) ? " " : string.Empty) + placeholder.Value;
+            box.Text = before + insert + box.Text[at..];
+            box.CaretIndex = at + insert.Length;
+            box.Focus();
+        }
+    }
+
+    private static T? FindChild<T>(DependencyObject parent, string name)
+        where T : FrameworkElement
+    {
+        for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+            if (child is T match && match.Name == name)
+            {
+                return match;
+            }
+
+            if (FindChild<T>(child, name) is { } deeper)
+            {
+                return deeper;
+            }
+        }
+
+        return null;
+    }
+
     private void OnEditRemoveAction(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { DataContext: EditableAction action })
@@ -587,6 +633,14 @@ internal sealed partial class ToolsView : UserControl
         if (!ToolEntry.IsSafePath(path) && !WslTool.TryParse(path, out _, out _))
         {
             _host.ShowNotice("That isn't a full path", "Use Browse… or paste a path like C:\\Tools\\tool.exe.", InfoBarSeverity.Warning);
+            return;
+        }
+
+        // An action that can't build its command (e.g. {pid} on a file action) would only fail later.
+        if (_editActions.FirstOrDefault(a => a.Preview.StartsWith('⚠')) is { } broken)
+        {
+            broken.IsExpanded = true;
+            _host.ShowNotice($"\"{broken.Title}\" can't run like this", broken.Preview.TrimStart('⚠', ' '), InfoBarSeverity.Warning);
             return;
         }
 

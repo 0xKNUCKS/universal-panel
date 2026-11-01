@@ -24,9 +24,9 @@ internal sealed class EditableAction : INotifyPropertyChanged
     /// <summary>What the action is given when it runs (the "Runs on" box).</summary>
     public static IReadOnlyList<Choice> Targets { get; } =
     [
-        new(ToolTargets.File, "A file: exe or module ({path})"),
-        new(ToolTargets.Process, "A process, by its PID ({pid})"),
-        new(ToolTargets.None, "Nothing (just starts the tool)"),
+        new(ToolTargets.Process, "A process: gets {pid}, and {path} = its exe"),
+        new(ToolTargets.File, "A file (an exe or a module): gets {path}, no {pid}"),
+        new(ToolTargets.None, "Nothing: just starts the tool"),
     ];
 
     public static IReadOnlyList<Choice> RunModes { get; } =
@@ -60,7 +60,7 @@ internal sealed class EditableAction : INotifyPropertyChanged
         {
             try
             {
-                return ToolCommand.Build(_toolPath(), ToAction(), ToolTarget.Sample, toWsl: null).Display;
+                return ToolCommand.Build(_toolPath(), ToAction(), ToolTarget.SampleFor(Target), toWsl: null).Display;
             }
             catch (ToolCommandException ex)
             {
@@ -84,6 +84,15 @@ internal sealed class EditableAction : INotifyPropertyChanged
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Preview)));
         }
     }
+
+    /// <summary>The placeholders the Insert buttons offer, with what each becomes.</summary>
+    public static IReadOnlyList<Choice> Placeholders { get; } =
+    [
+        new("{pid}", "The process ID (process actions only)"),
+        new("{path}", "The full path of the exe or module"),
+        new("{dir}", "The folder it's in"),
+        new("{name}", "Just the file name, e.g. notepad.exe"),
+    ];
 
     public sealed record Choice(string Value, string Label);
 }

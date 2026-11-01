@@ -18,9 +18,10 @@ There are two ways to change what's offered:
 | Field | Values | Meaning |
 |---|---|---|
 | `name` | text | What the menu shows, e.g. `Open in IDA`. |
-| `target` | `file`, `process`, `none` | What it runs on. `file` gets a path: a process's image, or a module. `process` gets a PID. |
+| `target` | `process`, `file`, `none` | When it's offered ("Runs on" in the panel). `process`: when you right-click a process; it gets `{pid}`, and `{path}` is the process's exe. `file`: for a process's exe *and* for modules (DLLs); it gets `{path}`, `{dir}`, `{name}` but no `{pid}`, because a DLL has none. `none`: never offered, just starts the tool. |
 | `run` | `window` (default), `console` | `console` keeps a window open with the tool's output. Use it for command-line tools. |
 | `args` | text | The arguments, with placeholders. |
+| `quote` | `true` (default), `false` | `false` passes the arguments exactly as typed, unquoted, for tools that read their whole command line as one path (CFF Explorer). Window actions only. |
 
 Placeholders:
 
@@ -40,7 +41,13 @@ How arguments are built, so you don't have to think about quoting:
   run as `wsl.exe -d <distro> --exec <command> …`, which skips the Linux shell.
 - `.bat` / `.cmd` tools are run by cmd.exe, which re-reads its command line. An argument
   containing `% ! ^ & | < >` or a quote is refused for them rather than escaped.
-- The Edit page shows a live preview of the exact command for each action.
+- Type placeholders exactly as shown, braces included: `-p {pid}`. The **Insert** buttons
+  under Arguments type them for you.
+- An unknown placeholder (a typo like `{file}`) or one the action can't get (`{pid}` in a
+  `file` action) is an error, shown in the preview and when saving, instead of reaching the
+  tool as literal text. Other braces (`{0}`, JSON) are left alone.
+- The Edit page shows a live preview of the exact command for each action, using the sample
+  values that kind of action really gets.
 
 Examples:
 

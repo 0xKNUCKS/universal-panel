@@ -581,10 +581,11 @@
                       </ToggleButton>
                       <ui:Button
                         Grid.Column="1"
-                        Margin="0,0,4,0"
-                        Padding="8,6"
-                        Appearance="Transparent"
+                        Margin="0,6,6,6"
+                        Padding="12,6"
+                        Appearance="Danger"
                         Click="OnEditRemoveAction"
+                        Content="Delete"
                         Icon="{ui:SymbolIcon Delete24}"
                         ToolTip="Delete this action"
                       />
@@ -612,10 +613,35 @@
 
                       <TextBlock Style="{StaticResource FieldLabel}" Text="Arguments" />
                       <ui:TextBox
+                        x:Name="ArgsBox"
                         FontFamily="Consolas"
-                        PlaceholderText="e.g. -n 8 {path}"
+                        PlaceholderText="e.g. -p {pid}  or  -n 8 {path}"
                         Text="{Binding Args, UpdateSourceTrigger=PropertyChanged}"
                       />
+                      <!--  Placeholders are typed exactly as shown, braces included; these insert them.  -->
+                      <StackPanel Margin="0,6,0,0" Orientation="Horizontal">
+                        <TextBlock Margin="0,0,6,0" VerticalAlignment="Center" Style="{StaticResource Secondary}" Text="Insert:" />
+                        <ItemsControl ItemsSource="{x:Static local:EditableAction.Placeholders}">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                              <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                              <ui:Button
+                                Margin="0,0,4,0"
+                                Padding="8,3"
+                                Appearance="Secondary"
+                                Click="OnInsertPlaceholder"
+                                Content="{Binding Value}"
+                                FontFamily="Consolas"
+                                ToolTip="{Binding Label}"
+                              />
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </StackPanel>
                       <CheckBox
                         Margin="0,6,0,0"
                         Content="Pass arguments exactly as typed (no quotes)"
@@ -623,7 +649,7 @@
                         ToolTip="For tools that read their whole command line as one path, like CFF Explorer. Leave it off for everything else."
                       />
 
-                      <TextBlock Style="{StaticResource FieldLabel}" Text="Command preview (sample process 1234, sample file)" />
+                      <TextBlock Style="{StaticResource FieldLabel}" Text="Command preview (with sample values)" />
                       <TextBlock
                         FontFamily="Consolas"
                         Style="{StaticResource Secondary}"
