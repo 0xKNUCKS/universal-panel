@@ -119,7 +119,8 @@ public partial class App : Application, ISingleInstanceApp
             ApplyHotkey: ChangeHotkey,
             ResetPanelWidth: () => _panel?.ResetWidth(),
             Redock: () => _panel?.Redock(),
-            OpenLogFolder: OpenLogFolder));
+            OpenLogFolder: OpenLogFolder,
+            OpenSettingsFolder: OpenSettingsFolder));
 
         _panel = new PanelWindow([new ProcessesModule(), new Modules.Tools.ToolsModule(), .. PlaceholderModule.Defaults, settingsModule]);
         _panel.Initialize();
@@ -149,6 +150,7 @@ public partial class App : Application, ISingleInstanceApp
     {
         var menu = new ContextMenu();
         menu.Items.Add(CreateMenuItem("Show panel", () => _panel?.ShowPanel()));
+        menu.Items.Add(CreateMenuItem("Open settings folder", OpenSettingsFolder));
         menu.Items.Add(CreateMenuItem("Open log folder", OpenLogFolder));
         if (!Elevation.IsElevated)
         {
@@ -225,13 +227,18 @@ public partial class App : Application, ISingleInstanceApp
         }
     }
 
-    private static void OpenLogFolder()
+    private static void OpenLogFolder() => OpenFolder(Log.Directory);
+
+    /// <summary>%LOCALAPPDATA%\UniversalPanel: settings.json, tools.json and copied tool icons.</summary>
+    private static void OpenSettingsFolder() => OpenFolder(ToolStore.Folder);
+
+    private static void OpenFolder(string folder)
     {
-        Directory.CreateDirectory(Log.Directory);
+        Directory.CreateDirectory(folder);
         // Absolute path to explorer.exe: no PATH / current-directory lookup.
         var explorer = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe");
         var startInfo = new ProcessStartInfo(explorer) { UseShellExecute = false };
-        startInfo.ArgumentList.Add(Log.Directory);
+        startInfo.ArgumentList.Add(folder);
         Process.Start(startInfo)?.Dispose();
     }
 

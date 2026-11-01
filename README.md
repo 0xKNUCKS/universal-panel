@@ -19,6 +19,12 @@ The shell works: tray icon, hotkey, slide-in panel, module rail, error handling 
 The process list samples once per second only while it's on screen (about 2.5% of one core while open, 0 while hidden).
 Without elevation, actions on other users' and protected processes fail with "access denied", by design.
 
+## Where things are stored
+
+Everything lives in `%LOCALAPPDATA%\UniversalPanel` (Settings > Settings folder, or the tray menu):
+`settings.json` (preferences and UI state), `tools.json` (your tools), `icons\` (copies of the
+icons you picked for tools) and `logs\`.
+
 ## Usage
 
 | Action | How |

@@ -193,4 +193,6 @@ internal sealed partial class SettingsView : UserControl
     private void OnResetWidthClick(object sender, RoutedEventArgs e) => _actions.ResetPanelWidth();
 
     private void OnOpenLogsClick(object sender, RoutedEventArgs e) => Guard.Run("Settings.OpenLogs", _actions.OpenLogFolder);
+
+    private void OnOpenSettingsFolderClick(object sender, RoutedEventArgs e) => Guard.Run("Settings.OpenFolder", _actions.OpenSettingsFolder);
 }

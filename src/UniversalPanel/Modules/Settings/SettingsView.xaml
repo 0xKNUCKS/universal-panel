@@ -88,6 +88,16 @@
         <ui:Button MinWidth="120" Click="OnResetWidthClick" Content="Reset" />
       </ui:CardControl>
 
+      <ui:CardControl Margin="0,0,0,8" Icon="{ui:SymbolIcon Folder24}">
+        <ui:CardControl.Header>
+          <StackPanel>
+            <ui:TextBlock Style="{StaticResource Title}" Text="Settings folder" />
+            <ui:TextBlock Style="{StaticResource Hint}" Text="settings.json, tools.json and tool icons." />
+          </StackPanel>
+        </ui:CardControl.Header>
+        <ui:Button MinWidth="120" Click="OnOpenSettingsFolderClick" Content="Open folder" />
+      </ui:CardControl>
+
       <ui:CardControl Margin="0,0,0,8" Icon="{ui:SymbolIcon DocumentText24}">
         <ui:CardControl.Header>
           <StackPanel>
