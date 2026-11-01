@@ -12,6 +12,8 @@
 //            run:    "window" (a normal app) or "console" (output shown in a console window).
 //            args:   placeholders {pid} {path} {dir} {name}. Each argument stays one argument,
 //                    spaces and all; nothing is passed through a shell. Quotes are optional.
+//            quote:  false = pass the arguments exactly as typed, unquoted (for tools that read
+//                    their whole command line as one path, like CFF Explorer). Default true.
 {
   "tools": [
     {
@@ -125,7 +127,8 @@
       "match": { "ProductName": "CFF Explorer" },
       "files": ["CFF Explorer.exe"],
       "actions": [
-        { "id": "open", "name": "Open in CFF Explorer", "target": "file", "args": "{path}" }
+        // CFF Explorer reads its whole command line as the path and opens nothing if it's quoted.
+        { "id": "open", "name": "Open in CFF Explorer", "target": "file", "args": "{path}", "quote": false }
       ]
     },
     {

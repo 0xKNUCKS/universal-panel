@@ -38,6 +38,12 @@ internal sealed class ToolAction
 
     public string Args { get; set; } = string.Empty;
 
+    /// <summary>
+    /// False: arguments are passed exactly as typed, joined with spaces, never quoted. For tools
+    /// that read their whole command line as one path (CFF Explorer opens nothing if it's quoted).
+    /// </summary>
+    public bool Quote { get; set; } = true;
+
     public ToolAction Clone() => (ToolAction)MemberwiseClone();
 }
 

@@ -28,13 +28,13 @@ internal sealed record ToolTarget(int? Pid, string? Path)
 }
 
 /// <summary>A resolved command: the program, its arguments (one string each) and where to run it.</summary>
-internal sealed record ToolCommand(string Program, IReadOnlyList<string> Arguments, string WorkingDirectory, bool Console)
+internal sealed record ToolCommand(string Program, IReadOnlyList<string> Arguments, string WorkingDirectory, bool Console, bool Raw = false)
 {
     private static readonly string Wsl = System.IO.Path.Combine(Environment.SystemDirectory, "wsl.exe");
     private static readonly char[] CmdSpecial = ['%', '!', '^', '&', '|', '<', '>', '"', '\r', '\n'];
 
-    /// <summary>The command line as Windows will see it (arguments quoted).</summary>
-    public string ArgumentLine => string.Join(' ', Arguments.Select(Quote));
+    /// <summary>The command line as Windows will see it (arguments quoted, unless the action asked for them as typed).</summary>
+    public string ArgumentLine => string.Join(' ', Raw ? Arguments : Arguments.Select(Quote));
 
     public string Display => $"{Quote(Program)} {ArgumentLine}".TrimEnd();
 
@@ -87,7 +87,8 @@ internal sealed record ToolCommand(string Program, IReadOnlyList<string> Argumen
         }
 
         string workingDirectory = console ? home : System.IO.Path.GetDirectoryName(toolPath) ?? home;
-        return new ToolCommand(toolPath, arguments, workingDirectory, console);
+        // "As typed" only for window actions: the console runner always passes an argument list.
+        return new ToolCommand(toolPath, arguments, workingDirectory, console, Raw: !action.Quote && !console);
     }
 
     /// <summary>Splits like a command line: whitespace separates, "double quotes" group (and are removed).</summary>
