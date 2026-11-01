@@ -151,7 +151,7 @@ internal sealed record ToolCommand(string Program, IReadOnlyList<string> Argumen
             else if (word.Length > 0 && word.All(char.IsAsciiLetter))
             {
                 // A typo like {file} would otherwise reach the tool as literal text.
-                throw new ToolCommandException($"{{{word}}} isn't a placeholder. Use {{pid}}, {{path}}, {{dir}} or {{name}}.");
+                throw new ToolCommandException($"Unknown placeholder {{{word}}}.");
             }
             else
             {
@@ -163,8 +163,8 @@ internal sealed record ToolCommand(string Program, IReadOnlyList<string> Argumen
     }
 
     private static string Missing(string word) => word.ToLowerInvariant() == "pid"
-        ? "{pid} only works when the action runs on a process (a file or module has no PID)."
-        : $"{{{word}}} has no value here: the file's path isn't known.";
+        ? "{pid} needs Runs on: A process."
+        : $"No {{{word}}} for this target.";
 
     /// <summary>Quotes one argument so CommandLineToArgvW / the MSVC runtime read it back unchanged.</summary>
     public static string Quote(string argument)

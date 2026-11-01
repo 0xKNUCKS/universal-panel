@@ -539,7 +539,7 @@
           <TextBlock
             Margin="0,0,0,8"
             Style="{StaticResource Secondary}"
-            Text="What &quot;Open with&quot; offers when you right-click a process or a module. In Arguments, {pid} {path} {dir} {name} are filled in; each argument stays one argument, spaces and all, and nothing goes through a shell. Quotes are optional. Click an action to show or hide its settings."
+            Text="Shown in Open with when you right-click a process or a module."
             TextTrimming="None"
             TextWrapping="Wrap"
           />
@@ -644,12 +644,12 @@
                       </StackPanel>
                       <CheckBox
                         Margin="0,6,0,0"
-                        Content="Pass arguments exactly as typed (no quotes)"
+                        Content="Don't quote arguments"
                         IsChecked="{Binding AsTyped}"
-                        ToolTip="For tools that read their whole command line as one path, like CFF Explorer. Leave it off for everything else."
+                        ToolTip="For tools like CFF Explorer"
                       />
 
-                      <TextBlock Style="{StaticResource FieldLabel}" Text="Command preview (with sample values)" />
+                      <TextBlock Style="{StaticResource FieldLabel}" Text="Preview" />
                       <TextBlock
                         FontFamily="Consolas"
                         Style="{StaticResource Secondary}"

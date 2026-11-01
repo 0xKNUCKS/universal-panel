@@ -24,9 +24,9 @@ internal sealed class EditableAction : INotifyPropertyChanged
     /// <summary>What the action is given when it runs (the "Runs on" box).</summary>
     public static IReadOnlyList<Choice> Targets { get; } =
     [
-        new(ToolTargets.Process, "A process: gets {pid}, and {path} = its exe"),
-        new(ToolTargets.File, "A file (an exe or a module): gets {path}, no {pid}"),
-        new(ToolTargets.None, "Nothing: just starts the tool"),
+        new(ToolTargets.Process, "A process"),
+        new(ToolTargets.File, "A file"),
+        new(ToolTargets.None, "Nothing"),
     ];
 
     public static IReadOnlyList<Choice> RunModes { get; } =
@@ -88,10 +88,10 @@ internal sealed class EditableAction : INotifyPropertyChanged
     /// <summary>The placeholders the Insert buttons offer, with what each becomes.</summary>
     public static IReadOnlyList<Choice> Placeholders { get; } =
     [
-        new("{pid}", "The process ID (process actions only)"),
-        new("{path}", "The full path of the exe or module"),
-        new("{dir}", "The folder it's in"),
-        new("{name}", "Just the file name, e.g. notepad.exe"),
+        new("{pid}", "Process ID"),
+        new("{path}", "Full path"),
+        new("{dir}", "Folder"),
+        new("{name}", "File name"),
     ];
 
     public sealed record Choice(string Value, string Label);

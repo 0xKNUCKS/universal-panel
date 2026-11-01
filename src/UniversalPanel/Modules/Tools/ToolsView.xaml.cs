@@ -324,7 +324,7 @@ internal sealed partial class ToolsView : UserControl
             return false;
         }
 
-        _host.ShowNotice("Network paths aren't supported", "Copy the tool (or icon) to this PC first. Opening it from a share would make the panel connect to that computer every time it starts.", InfoBarSeverity.Warning);
+        _host.ShowNotice("Network paths aren't supported", "Copy it to this PC first.", InfoBarSeverity.Warning);
         return true;
     }
 
@@ -640,7 +640,7 @@ internal sealed partial class ToolsView : UserControl
         if (_editActions.FirstOrDefault(a => a.Preview.StartsWith('⚠')) is { } broken)
         {
             broken.IsExpanded = true;
-            _host.ShowNotice($"\"{broken.Title}\" can't run like this", broken.Preview.TrimStart('⚠', ' '), InfoBarSeverity.Warning);
+            _host.ShowNotice($"Can't save \"{broken.Title}\"", broken.Preview.TrimStart('⚠', ' '), InfoBarSeverity.Warning);
             return;
         }
 
