@@ -24,4 +24,7 @@ internal interface IPanelModule
 
     /// <summary>Module hidden (panel dismissed or another module selected). Stop all background work here.</summary>
     void OnDeactivated();
+
+    /// <summary>Panel finished sliding in (or the module was selected while open): focus can go here.</summary>
+    void OnShown() { }
 }

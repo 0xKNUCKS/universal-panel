@@ -87,7 +87,7 @@ public partial class PanelWindow : FluentWindow, IModuleHost
         this.SetWindowPos(rect.X, rect.Y, rect.Width, rect.Height);
 
         ActivateModule(_active);
-        PanelAnimator.BeginEntrance(this, Root, () => { });
+        PanelAnimator.BeginEntrance(this, Root, () => ShownModule(_active));
     }
 
     public void HidePanel()
@@ -239,6 +239,7 @@ public partial class PanelWindow : FluentWindow, IModuleHost
         if (_isOpen)
         {
             ActivateModule(next);
+            ShownModule(next);
         }
     }
 
@@ -284,6 +285,14 @@ public partial class PanelWindow : FluentWindow, IModuleHost
         if (module is not null)
         {
             Guard.Run($"{module.Id}.OnActivated", module.OnActivated);
+        }
+    }
+
+    private static void ShownModule(IPanelModule? module)
+    {
+        if (module is not null)
+        {
+            Guard.Run($"{module.Id}.OnShown", module.OnShown);
         }
     }
 
