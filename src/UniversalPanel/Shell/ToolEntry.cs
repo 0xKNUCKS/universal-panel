@@ -22,7 +22,7 @@ internal sealed class ToolEntry
     /// <summary>Sections it's listed in; null means the catalog's defaults.</summary>
     public List<string>? Categories { get; set; }
 
-    /// <summary>The user's actions for this tool; null means the catalog's defaults (Catalog/tools.json).</summary>
+    /// <summary>The user's actions for this tool; null means the catalog's defaults (Catalog/known-tools.json).</summary>
     public List<Native.ToolAction>? Actions { get; set; }
 
     public ToolEntry Clone() => new()

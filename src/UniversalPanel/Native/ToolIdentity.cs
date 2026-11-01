@@ -1,6 +1,6 @@
 // Identifies known tools from what the file says about itself (version-info fields, Ghidra's
 // application.properties) and, where the publisher signs, from the Authenticode signer. The rules
-// live in Catalog/tools.json (see docs/TOOLS.md), not in code, so adding a tool is a data change.
+// live in Catalog/known-tools.json (see docs/TOOLS.md), not in code, so adding a tool is a data change.
 // Values were read from real installs (IDA Free 9.3, IDA 7.5, DIE 3.10, x64dbg 2025-08-19,
 // System Informer 4.0, PE-bear 0.7.1, CFF Explorer 8, a Kali WSL distro) and from Ghidra's
 // repository (Ghidra/application.properties).
@@ -57,7 +57,7 @@ internal static class ToolRunModes
     public const string Window = "window", Console = "console";
 }
 
-/// <summary>One entry of Catalog/tools.json.</summary>
+/// <summary>One entry of Catalog/known-tools.json.</summary>
 internal sealed class CatalogTool
 {
     public string Id { get; set; } = string.Empty;
@@ -92,8 +92,8 @@ internal static class ToolCatalog
     {
         try
         {
-            using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("tools.catalog.json")
-                ?? throw new FileNotFoundException("tools.catalog.json is missing from the build");
+            using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("known-tools.json")
+                ?? throw new FileNotFoundException("known-tools.json is missing from the build");
             var options = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,

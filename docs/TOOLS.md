@@ -10,7 +10,7 @@ There are two ways to change what's offered:
   **Actions**. Your changes are saved in your settings and override the defaults for that tool.
   **Reset to defaults** goes back to the shipped ones.
 - **In the repository** (to improve the defaults for everyone): edit
-  [`src/UniversalPanel/Catalog/tools.json`](../src/UniversalPanel/Catalog/tools.json). No C#
+  [`src/UniversalPanel/Catalog/known-tools.json`](../src/UniversalPanel/Catalog/known-tools.json). No C#
   needed. It's JSON with `//` comments allowed.
 
 ## Actions

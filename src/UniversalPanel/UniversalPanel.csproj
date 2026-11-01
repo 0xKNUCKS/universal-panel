@@ -20,7 +20,7 @@
 
   <ItemGroup>
     <!-- Tools the panel recognizes and their default actions: see docs/TOOLS.md. -->
-    <EmbeddedResource Include="Catalog/tools.json" LogicalName="tools.catalog.json" />
+    <EmbeddedResource Include="Catalog/known-tools.json" LogicalName="known-tools.json" />
   </ItemGroup>
 
   <ItemGroup>

@@ -7,7 +7,7 @@ using UniversalPanel.Native;
 namespace UniversalPanel.Modules.Tools;
 
 /// <summary>
-/// Looks for the tools in Catalog/tools.json: their "files" in the usual places (Program Files,
+/// Looks for the tools in Catalog/known-tools.json: their "files" in the usual places (Program Files,
 /// per-user Programs, Documents, Desktop, Downloads, C:\Tools) and in the folders on PATH, and
 /// their "wsl" commands in each installed WSL distro. Keeps only what <see cref="ToolCatalog"/>
 /// recognizes, one per tool and version. Links (junctions, symlinks) aren't followed.
