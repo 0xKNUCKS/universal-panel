@@ -175,7 +175,7 @@ public partial class PanelWindow : FluentWindow, IModuleHost
 
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape)
+        if (e.Key == Key.Escape && !PanelKeys.KeepsEscape(e.OriginalSource as DependencyObject))
         {
             HidePanel();
             e.Handled = true;
