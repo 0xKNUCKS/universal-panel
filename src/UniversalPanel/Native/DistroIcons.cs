@@ -164,7 +164,9 @@ internal static partial class DistroIcons
     private static BitmapSource LoadPng(string path)
     {
         using var stream = File.OpenRead(path);
-        var image = BitmapFrame.Create(stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+        var frame = BitmapFrame.Create(stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+        // A plain copy: a BitmapFrame keeps its decoder, which belongs to the thread that loaded it.
+        var image = new WriteableBitmap(frame);
         image.Freeze();
         return image;
     }

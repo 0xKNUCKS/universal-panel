@@ -18,6 +18,10 @@ internal sealed record TerminalProfile(string Name, string Program, IReadOnlyLis
 
     /// <summary>The WSL distro, for WSL profiles.</summary>
     public string? Distro { get; init; }
+
+    // The name, for screen readers (WPF asks list items for ToString). The generated one would
+    // also print Icon, which can throw when read from another thread.
+    public override string ToString() => Name;
 }
 
 /// <summary>The shells installed here: PowerShell 7, Windows PowerShell, cmd, each WSL distro, Python.</summary>
