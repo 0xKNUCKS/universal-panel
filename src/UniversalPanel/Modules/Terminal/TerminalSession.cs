@@ -43,6 +43,9 @@ internal sealed class TerminalSession(TerminalProfile profile, Dispatcher dispat
         }
     }
 
+    /// <summary>Why it ended, e.g. "exited with code 0".</summary>
+    public string? EndReason { get; private set; }
+
     /// <summary>The shell has exited (the tab stays until closed, showing why).</summary>
     public bool Ended
     {
@@ -127,6 +130,7 @@ internal sealed class TerminalSession(TerminalProfile profile, Dispatcher dispat
 
     public void OnEnded(string reason)
     {
+        EndReason = reason;
         Show($"\r\n\u001b[90m[{reason}]\u001b[0m\r\n");
         dispatcher.BeginInvoke(() => Ended = true);
     }

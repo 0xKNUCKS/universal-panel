@@ -21,7 +21,7 @@ internal static class ToolRunner
             // A shell in the distro is more useful than one tool's usage text.
             var shell = new ToolCommand(System.IO.Path.Combine(Environment.SystemDirectory, "wsl.exe"), ["-d", distro],
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), Console: true);
-            return StartCheckedAsync(host, tool, shell, asAdministrator);
+            return StartCheckedAsync(host, tool, tool.Name, shell, asAdministrator);
         }
 
         return RunAsync(host, tool, action, new ToolTarget(null, null), asAdministrator);
@@ -41,13 +41,13 @@ internal static class ToolRunner
             return;
         }
 
-        await StartCheckedAsync(host, tool, command, asAdministrator);
+        await StartCheckedAsync(host, tool, action.Name, command, asAdministrator);
     }
 
     private static Func<string, string>? WslConverter(string toolPath) =>
         WslTool.TryParse(toolPath, out var distro, out _) ? p => ToolCommand.WslPath(distro, p) : null;
 
-    private static async Task StartCheckedAsync(IModuleHost host, ToolRow tool, ToolCommand command, bool asAdministrator)
+    private static async Task StartCheckedAsync(IModuleHost host, ToolRow tool, string title, ToolCommand command, bool asAdministrator)
     {
         if (!await CanStartAsync(host, tool))
         {
@@ -63,7 +63,15 @@ internal static class ToolRunner
             return;
         }
 
-        // Command-line tools run inside the panel's console runner, which keeps the window open.
+        // Command-line tools run in a Terminal tab (the terminal host starts programs directly, so
+        // .exe only); as administrator, or for .bat/.cmd, in the panel's console runner instead.
+        if (command.Console && !asAdministrator && command.Program.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+            && Terminal.TerminalRenderer.Problem() is null)
+        {
+            Terminal.TerminalRequests.Send(host, view => view.Run(title, tool.Icon, command));
+            return;
+        }
+
         string program = command.Program, arguments = command.ArgumentLine;
         if (command.Console)
         {

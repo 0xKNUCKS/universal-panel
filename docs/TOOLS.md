@@ -19,7 +19,7 @@ There are two ways to change what's offered:
 |---|---|---|
 | `name` | text | What the menu shows, e.g. `Open in IDA`. |
 | `target` | `process`, `file`, `none` | When it's offered ("Runs on" in the panel). `process`: when you right-click a process; it gets `{pid}`, and `{path}` is the process's exe. `file`: for a process's exe *and* for modules (DLLs); it gets `{path}`, `{dir}`, `{name}` but no `{pid}`, because a DLL has none. `none`: never offered, just starts the tool. |
-| `run` | `window` (default), `console` | `console` keeps a window open with the tool's output. Use it for command-line tools. |
+| `run` | `window` (default), `console` | `console` shows the tool's output in a Terminal tab that stays open with the exit code (`.bat`/`.cmd` tools and "run as administrator" use a console window instead). Use it for command-line tools. |
 | `args` | text | The arguments, with placeholders. |
 | `quote` | `true` (default), `false` | `false` passes the arguments exactly as typed, unquoted, for tools that read their whole command line as one path (CFF Explorer). Window actions only. |
 

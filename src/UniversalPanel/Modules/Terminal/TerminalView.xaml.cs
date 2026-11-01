@@ -18,6 +18,7 @@ internal sealed partial class TerminalView : UserControl
     private readonly ObservableCollection<TerminalTab> _tabs = [];
     private List<TerminalProfile>? _profiles;
     private bool _restored;
+    private bool _visible;
 
     public TerminalView(IModuleHost host)
     {
@@ -37,9 +38,12 @@ internal sealed partial class TerminalView : UserControl
 
     public void Reveal()
     {
+        _visible = true;
         Surfaces.Visibility = Visibility.Visible;
         Selected?.Focus();
     }
+
+    public void OnHidden() => _visible = false;
 
     private async Task LoadProfilesAsync()
     {
@@ -142,6 +146,11 @@ internal sealed partial class TerminalView : UserControl
                 {
                     SaveTabs();
                 }
+                else if (e.PropertyName == nameof(TerminalTab.Ended) && tab.Ended && !_visible && profile.Kind == ToolRunKind)
+                {
+                    // An action finished while you were elsewhere; the notice waits in the panel.
+                    _host.ShowNotice($"{tab.Name} finished", tab.Session.EndReason ?? string.Empty, InfoBarSeverity.Informational);
+                }
             };
             _tabs.Add(tab);
             Surfaces.Children.Add(tab.Surface);
@@ -186,6 +195,19 @@ internal sealed partial class TerminalView : UserControl
         Open(here, admin: false);
     }
 
+    private const string ToolRunKind = "tool";
+
+    /// <summary>A tool's command-line action in its own tab, which stays open with the exit code.</summary>
+    public void Run(string title, System.Windows.Media.ImageSource? icon, ToolCommand command)
+    {
+        var profile = new TerminalProfile(title, command.Program, command.Arguments, ToolRunKind)
+        {
+            Icon = icon,
+            Directory = command.WorkingDirectory,
+        };
+        Open(profile, admin: false);
+    }
+
     /// <summary>Types a PID or a quoted path into the current tab, without Enter.</summary>
     public void Paste(string text, bool isPath)
     {
@@ -221,7 +243,7 @@ internal sealed partial class TerminalView : UserControl
     private void SaveTabs()
     {
         PanelSettings.Current.TerminalTabs = _tabs
-            .Where(t => !t.Admin)
+            .Where(t => !t.Admin && t.Session.Profile.Kind != ToolRunKind)
             .Select(t => new SavedTerminalTab(t.Session.Profile.Name, t.Name))
             .ToList();
         PanelSettings.Current.SaveSoon();

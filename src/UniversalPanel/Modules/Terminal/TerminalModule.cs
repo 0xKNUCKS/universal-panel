@@ -23,5 +23,5 @@ internal sealed class TerminalModule : IPanelModule
     public void OnShown() => _view?.Reveal();
 
     // Shells keep running while the panel is hidden (that's the point of a drop-down terminal).
-    public void OnDeactivated() { }
+    public void OnDeactivated() => _view?.OnHidden();
 }
