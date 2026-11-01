@@ -41,6 +41,13 @@ public partial class App : Application, ISingleInstanceApp
             return;
         }
 
+        // The Terminal tab's shell host (started unelevated by the panel): no UI of its own.
+        if (arguments.Length > 1 && arguments[1] == TerminalHostProcess.Switch)
+        {
+            Environment.ExitCode = TerminalHostProcess.Run(arguments[2..]);
+            return;
+        }
+
         Log.Start();
         Log.Info("App", $"Starting {typeof(App).Assembly.GetName().Version} on {Environment.OSVersion}, x64={Environment.Is64BitProcess}");
 
