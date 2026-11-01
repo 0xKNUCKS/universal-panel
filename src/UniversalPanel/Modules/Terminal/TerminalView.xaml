@@ -51,6 +51,7 @@
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
       <ListBox
         x:Name="Tabs"
@@ -68,6 +69,7 @@
         </ListBox.ItemsPanel>
         <ListBox.ContextMenu>
           <ContextMenu>
+            <MenuItem Click="OnShowInProcesses" Header="Show in Processes" />
             <MenuItem Click="OnRenameTab" Header="Rename" />
             <MenuItem Click="OnCloseTab" Header="Close" />
           </ContextMenu>
@@ -134,8 +136,22 @@
         </ListBox.ItemTemplate>
       </ListBox>
       <ui:Button
-        x:Name="NewButton"
+        x:Name="SelectionButton"
         Grid.Column="1"
+        Margin="8,0,0,0"
+        Padding="8,6"
+        Appearance="Secondary"
+        Click="OnSelectionClick"
+        Icon="{ui:SymbolIcon CursorClick20}"
+        ToolTip="Selected PID or path"
+      >
+        <ui:Button.ContextMenu>
+          <ContextMenu />
+        </ui:Button.ContextMenu>
+      </ui:Button>
+      <ui:Button
+        x:Name="NewButton"
+        Grid.Column="2"
         Margin="8,0,0,0"
         Padding="8,6"
         Appearance="Secondary"

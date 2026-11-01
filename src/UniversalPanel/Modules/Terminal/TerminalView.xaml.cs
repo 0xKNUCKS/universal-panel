@@ -257,6 +257,27 @@ internal sealed partial class TerminalView : UserControl
         }
     }
 
+    private void OnShowInProcesses(object sender, RoutedEventArgs e)
+    {
+        if (Selected?.Session.ProcessId is { } pid)
+        {
+            Processes.ProcessRequests.Show(_host, pid);
+        }
+    }
+
+    private void OnSelectionClick(object sender, RoutedEventArgs e)
+    {
+        if (SelectionButton.ContextMenu is not { } menu)
+        {
+            return;
+        }
+
+        TerminalSelection.Fill(menu, _host, Selected?.SelectedText ?? string.Empty, Selected?.Session.Profile ?? new TerminalProfile(string.Empty, string.Empty, [], string.Empty));
+        menu.PlacementTarget = SelectionButton;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        menu.IsOpen = true;
+    }
+
     private void OnCloseTab(object sender, RoutedEventArgs e)
     {
         if (Selected is { } tab)
@@ -295,6 +316,7 @@ internal sealed partial class TerminalView : UserControl
         bool empty = _tabs.Count == 0;
         EmptyState.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
         Tabs.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
+        SelectionButton.Visibility = Tabs.Visibility;
     }
 
     // ---- renaming ------------------------------------------------------------------------------

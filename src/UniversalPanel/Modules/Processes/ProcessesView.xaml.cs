@@ -60,6 +60,7 @@ internal sealed partial class ProcessesView : UserControl
         _ = Diagnostics.Guard.RunAsync("Tools.Inspect", Tools.ToolLibrary.EnsureInspectedAsync);
 
         sampler.Sampled += frame => Dispatcher.InvokeAsync(() => Apply(frame), DispatcherPriority.Background);
+        ProcessRequests.Attach(this);
     }
 
     internal IModuleHost Host { get; }
@@ -95,6 +96,7 @@ internal sealed partial class ProcessesView : UserControl
         UpdateTree(alive);
         _latestProcesses = frame.Processes;
         SelectPendingProcess();
+        TryReveal(lastChance: true);
         LoadingRing.Set(ListSpinner, false);
         Summary.Text = DescribeSystem(frame);
 

@@ -56,6 +56,46 @@ internal sealed partial class ProcessesView
         }
     }
 
+    private int? _revealPid;
+
+    /// <summary>Another module asked to show this process (ProcessRequests): selected, children shown.</summary>
+    public void Reveal(int pid)
+    {
+        if (DetailsOpen)
+        {
+            CloseDetails();
+        }
+
+        _revealPid = pid;
+        TryReveal(lastChance: false);
+    }
+
+    /// <summary>
+    /// The list only samples while it's on screen, so a process that started meanwhile (or before
+    /// the view existed) appears with the next sample: tried again then, and given up after that.
+    /// </summary>
+    private void TryReveal(bool lastChance)
+    {
+        if (_revealPid is not { } pid)
+        {
+            return;
+        }
+
+        if (SelectProcess(pid))
+        {
+            _revealPid = null;
+            if (Selected is { HasChildren: true } row)
+            {
+                SetExpanded(row, true);
+            }
+        }
+        else if (lastChance)
+        {
+            _revealPid = null;
+            Host.ShowNotice($"Process {pid} isn't running", string.Empty, InfoBarSeverity.Informational);
+        }
+    }
+
     /// <summary>Selects the newest process with this PID, clearing the filter and expanding its tree path.</summary>
     private bool SelectProcess(int pid)
     {

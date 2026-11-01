@@ -119,6 +119,9 @@ internal static partial class TerminalHostProcess
         }
 
         sessions[id] = console;
+        var pid = new byte[4];
+        BinaryPrimitives.WriteInt32LittleEndian(pid, console.ProcessId);
+        _ = TerminalProtocol.WriteAsync(pipe, gate, TerminalMessage.Started, id, pid);
         _ = PumpAsync(pipe, gate, sessions, id, console);
     }
 

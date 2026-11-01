@@ -38,6 +38,8 @@ internal sealed class TerminalTab : INotifyPropertyChanged
 
     public bool Admin => Session.Admin;
 
+    public string SelectedText => ((TerminalControl)Surface).GetSelectedText() ?? string.Empty;
+
     public bool Ended => Session.Ended;
 
     public bool IsRenaming

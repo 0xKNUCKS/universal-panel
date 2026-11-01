@@ -43,6 +43,9 @@ internal sealed class TerminalSession(TerminalProfile profile, Dispatcher dispat
         }
     }
 
+    /// <summary>The shell's PID, as reported by the host (for "Show in Processes").</summary>
+    public int? ProcessId { get; set; }
+
     /// <summary>Why it ended, e.g. "exited with code 0".</summary>
     public string? EndReason { get; private set; }
 

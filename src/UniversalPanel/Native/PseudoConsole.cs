@@ -21,10 +21,11 @@ internal sealed unsafe partial class PseudoConsole : IDisposable
     private bool _disposed;
     private int _consoleClosed;
 
-    private PseudoConsole(nint console, nint process, FileStream input, FileStream output)
+    private PseudoConsole(nint console, nint process, int processId, FileStream input, FileStream output)
     {
         _console = console;
         _process = process;
+        ProcessId = processId;
         _input = input;
         Output = output;
         Exited = Task.Run(WaitForExit);
@@ -34,6 +35,9 @@ internal sealed unsafe partial class PseudoConsole : IDisposable
     }
 
     /// <summary>What the shell writes (VT text, UTF-8). Ends when the pseudo console closes.</summary>
+    /// <summary>The shell's PID.</summary>
+    public int ProcessId { get; }
+
     public FileStream Output { get; }
 
     /// <summary>Completes with the exit code when the shell exits.</summary>
@@ -94,7 +98,7 @@ internal sealed unsafe partial class PseudoConsole : IDisposable
             }
 
             CloseHandle(info.hThread);
-            var session = new PseudoConsole(console, info.hProcess, new FileStream(inputWrite, FileAccess.Write, 1), new FileStream(outputRead, FileAccess.Read, 1));
+            var session = new PseudoConsole(console, info.hProcess, (int)info.dwProcessId, new FileStream(inputWrite, FileAccess.Write, 1), new FileStream(outputRead, FileAccess.Read, 1));
             console = 0;
             info.hProcess = 0;
             return session;

@@ -190,6 +190,9 @@ internal sealed partial class TerminalHost : IDisposable
                     case TerminalMessage.Output:
                         session.OnOutput(message.Payload);
                         break;
+                    case TerminalMessage.Started when message.Payload.Length == 4:
+                        session.ProcessId = BinaryPrimitives.ReadInt32LittleEndian(message.Payload);
+                        break;
                     case TerminalMessage.Exited when message.Payload.Length == 4:
                         _sessions.TryRemove(message.Session, out _);
                         session.OnEnded($"exited with code {BinaryPrimitives.ReadInt32LittleEndian(message.Payload)}");

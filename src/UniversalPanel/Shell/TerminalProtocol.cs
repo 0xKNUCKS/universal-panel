@@ -16,6 +16,7 @@ internal enum TerminalMessage : byte
     Output = 10, // payload: UTF-8 terminal output
     Exited = 11, // payload: exit code (i32)
     Failed = 12, // payload: UTF-8 reason
+    Started = 13, // payload: the shell's PID (i32); only used to select it in Processes when asked
 }
 
 /// <summary>What the panel asks the host to start: an absolute program path and its arguments.</summary>

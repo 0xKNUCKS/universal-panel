@@ -16,7 +16,9 @@ internal sealed class ProcessesModule : IPanelModule, IDisposable
         }
     }
 
-    public string Id => "processes";
+    public const string ModuleId = "processes";
+
+    public string Id => ModuleId;
     public string Title => "Processes";
     public SymbolRegular Icon => SymbolRegular.Pulse24;
 
