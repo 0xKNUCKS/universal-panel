@@ -37,7 +37,7 @@ internal sealed class ToolEntry
     /// <summary>False for anything a hand-edited settings file shouldn't contain.</summary>
     public bool Sanitize()
     {
-        if (!IsSafePath(Path) && !Native.WslTool.TryParse(Path, out _, out _))
+        if (!IsToolPath(Path))
         {
             return false;
         }
@@ -62,6 +62,9 @@ internal sealed class ToolEntry
     /// </summary>
     public static bool IsSafePath(string? path) =>
         path is { Length: > 3 and < 1024 } && System.IO.Path.IsPathFullyQualified(path) && !path.Contains('"') && !IsNetworkPath(path);
+
+    /// <summary>A local program, or a command inside a WSL distro (<c>wsl:distro:command</c>).</summary>
+    public static bool IsToolPath(string? path) => IsSafePath(path) || Native.WslTool.TryParse(path, out _, out _);
 
     public static bool IsNetworkPath(string path) =>
         path.StartsWith(@"\\", StringComparison.Ordinal) || path.StartsWith("//", StringComparison.Ordinal);

@@ -343,7 +343,7 @@ internal sealed partial class ToolsView : UserControl
         var added = new List<ToolRow>();
         foreach (var path in paths)
         {
-            if (ToolEntry.IsSafePath(path) && !Library.Any(r => r.Path.Equals(path, StringComparison.OrdinalIgnoreCase)))
+            if (ToolEntry.IsToolPath(path) && !Library.Any(r => r.Path.Equals(path, StringComparison.OrdinalIgnoreCase)))
             {
                 var row = new ToolRow(new ToolEntry { Path = path });
                 Library.Add(row);
@@ -631,7 +631,7 @@ internal sealed partial class ToolsView : UserControl
             return;
         }
 
-        if (!ToolEntry.IsSafePath(path) && !WslTool.TryParse(path, out _, out _))
+        if (!ToolEntry.IsToolPath(path))
         {
             _host.ShowNotice("That isn't a full path", "Use Browse… or paste a path like C:\\Tools\\tool.exe.", InfoBarSeverity.Warning);
             return;
