@@ -8,6 +8,33 @@
 >
   <UserControl.Resources>
     <local:SectionExpandedConverter x:Key="SectionExpanded" />
+    <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+
+    <!--  Labels above edit fields.  -->
+    <Style x:Key="FieldLabel" TargetType="TextBlock">
+      <Setter Property="Margin" Value="0,10,0,4" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+    </Style>
+
+    <!--  A flat, full-width clickable header (collapsible action cards).  -->
+    <Style x:Key="CardHeader" TargetType="ToggleButton">
+      <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ToggleButton">
+            <Border x:Name="Frame" Padding="{TemplateBinding Padding}" Background="Transparent" CornerRadius="6">
+              <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
 
     <!-- Selection is an accent outline, hover a faint wash; no filled highlight. The item sets the
          text colors itself: without a Foreground, text falls back to WPF's default black. -->
@@ -126,6 +153,7 @@
           MinWidth="0"
           Margin="0,0,8,0"
           VerticalAlignment="Center"
+          Click="OnFoundCheckClick"
           IsChecked="{Binding IsChecked, Mode=TwoWay}"
           IsEnabled="{Binding CanAdd}"
         />
@@ -376,7 +404,33 @@
         />
       </Grid>
 
-      <TextBlock x:Name="FindTitle" Grid.Row="1" Margin="2,0,0,6" Style="{StaticResource Secondary}" />
+      <Grid Grid.Row="1" Margin="0,0,0,6">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBlock x:Name="FindTitle" Margin="2,0,0,0" VerticalAlignment="Center" Style="{StaticResource Secondary}" />
+        <ui:Button
+          Grid.Column="1"
+          Padding="8,4"
+          Appearance="Transparent"
+          Click="OnFindSelectAll"
+          Content="Select all"
+          Icon="{ui:SymbolIcon SelectAllOn24}"
+          ToolTip="Check every tool shown that isn't added yet"
+        />
+        <ui:Button
+          Grid.Column="2"
+          Margin="4,0,0,0"
+          Padding="8,4"
+          Appearance="Transparent"
+          Click="OnFindSelectNone"
+          Content="Select none"
+          Icon="{ui:SymbolIcon SelectAllOff24}"
+          ToolTip="Uncheck every tool shown"
+        />
+      </Grid>
 
       <ListBox
         x:Name="FindChips"
@@ -390,8 +444,9 @@
         x:Name="FoundList"
         Grid.Row="3"
         ItemTemplate="{StaticResource FoundTemplate}"
+        KeyDown="OnFoundKeyDown"
         PreviewMouseLeftButtonDown="OnListPreviewMouseDown"
-        SelectionMode="Single"
+        SelectionMode="Extended"
         Style="{StaticResource BareList}"
       >
         <ListBox.ItemContainerStyle>
@@ -484,7 +539,7 @@
           <TextBlock
             Margin="0,0,0,8"
             Style="{StaticResource Secondary}"
-            Text="What &quot;Open with&quot; offers for this tool. Arguments can use {pid} {path} {dir} {name}; each argument stays one argument, spaces and all, and nothing goes through a shell. Quotes are optional."
+            Text="What &quot;Open with&quot; offers when you right-click a process or a module. In Arguments, {pid} {path} {dir} {name} are filled in; each argument stays one argument, spaces and all, and nothing goes through a shell. Quotes are optional. Click an action to show or hide its settings."
             TextTrimming="None"
             TextWrapping="Wrap"
           />
@@ -493,66 +548,97 @@
               <DataTemplate>
                 <Border
                   Margin="0,0,0,8"
-                  Padding="8"
                   BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
                   BorderThickness="1"
                   CornerRadius="6"
                 >
                   <StackPanel>
+                    <!--  Header: click to collapse / expand; the title follows the Name box.  -->
                     <Grid>
                       <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                       </Grid.ColumnDefinitions>
-                      <ui:TextBox PlaceholderText="Name, e.g. Open in IDA" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+                      <ToggleButton
+                        Padding="10,8"
+                        HorizontalContentAlignment="Stretch"
+                        Cursor="Hand"
+                        IsChecked="{Binding IsExpanded, Mode=TwoWay}"
+                        Style="{StaticResource CardHeader}"
+                        ToolTip="Show or hide the settings of this action"
+                      >
+                        <StackPanel Orientation="Horizontal">
+                          <ui:SymbolIcon x:Name="Chevron" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Symbol="ChevronRight24" />
+                          <TextBlock
+                            Margin="8,0,0,0"
+                            VerticalAlignment="Center"
+                            FontWeight="SemiBold"
+                            Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                            Text="{Binding Title}"
+                            TextTrimming="CharacterEllipsis"
+                          />
+                        </StackPanel>
+                      </ToggleButton>
                       <ui:Button
                         Grid.Column="1"
-                        Margin="4,0,0,0"
+                        Margin="0,0,4,0"
                         Padding="8,6"
                         Appearance="Transparent"
                         Click="OnEditRemoveAction"
                         Icon="{ui:SymbolIcon Delete24}"
-                        ToolTip="Remove this action"
+                        ToolTip="Delete this action"
                       />
                     </Grid>
-                    <Grid Margin="0,6,0,0">
-                      <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                      </Grid.ColumnDefinitions>
+
+                    <StackPanel Margin="10,0,10,10" Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}}">
+                      <TextBlock Style="{StaticResource FieldLabel}" Text="Name" />
+                      <ui:TextBox PlaceholderText="What the menu shows, e.g. Open in IDA" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+
+                      <TextBlock Style="{StaticResource FieldLabel}" Text="Runs on" />
                       <ComboBox
                         DisplayMemberPath="Label"
                         ItemsSource="{x:Static local:EditableAction.Targets}"
                         SelectedValue="{Binding Target}"
                         SelectedValuePath="Value"
-                        ToolTip="What the action runs on"
                       />
+
+                      <TextBlock Style="{StaticResource FieldLabel}" Text="Opens in" />
                       <ComboBox
-                        Grid.Column="1"
-                        Margin="6,0,0,0"
                         DisplayMemberPath="Label"
                         ItemsSource="{x:Static local:EditableAction.RunModes}"
                         SelectedValue="{Binding Run}"
                         SelectedValuePath="Value"
-                        ToolTip="Console keeps a window open with the tool's output"
                       />
-                    </Grid>
-                    <ui:TextBox
-                      Margin="0,6,0,0"
-                      FontFamily="Consolas"
-                      PlaceholderText="Arguments, e.g. -n 8 {path}"
-                      Text="{Binding Args, UpdateSourceTrigger=PropertyChanged}"
-                    />
-                    <TextBlock
-                      Margin="2,6,0,0"
-                      FontFamily="Consolas"
-                      Style="{StaticResource Secondary}"
-                      Text="{Binding Preview}"
-                      TextTrimming="None"
-                      TextWrapping="Wrap"
-                    />
+
+                      <TextBlock Style="{StaticResource FieldLabel}" Text="Arguments" />
+                      <ui:TextBox
+                        FontFamily="Consolas"
+                        PlaceholderText="e.g. -n 8 {path}"
+                        Text="{Binding Args, UpdateSourceTrigger=PropertyChanged}"
+                      />
+                      <CheckBox
+                        Margin="0,6,0,0"
+                        Content="Pass arguments exactly as typed (no quotes)"
+                        IsChecked="{Binding AsTyped}"
+                        ToolTip="For tools that read their whole command line as one path, like CFF Explorer. Leave it off for everything else."
+                      />
+
+                      <TextBlock Style="{StaticResource FieldLabel}" Text="Command preview (sample process 1234, sample file)" />
+                      <TextBlock
+                        FontFamily="Consolas"
+                        Style="{StaticResource Secondary}"
+                        Text="{Binding Preview}"
+                        TextTrimming="None"
+                        TextWrapping="Wrap"
+                      />
+                    </StackPanel>
                   </StackPanel>
                 </Border>
+                <DataTemplate.Triggers>
+                  <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                    <Setter TargetName="Chevron" Property="Symbol" Value="ChevronDown24" />
+                  </DataTrigger>
+                </DataTemplate.Triggers>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>

@@ -307,8 +307,25 @@ internal sealed partial class ToolsView : UserControl
     {
         if (PickFile("Add a tool", "Programs and scripts (*.exe;*.bat;*.cmd)|*.exe;*.bat;*.cmd", Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)) is { } path)
         {
+            if (RefuseNetworkPath(path))
+            {
+                return;
+            }
+
             Add([path]);
         }
+    }
+
+    /// <summary>Network paths aren't supported (see ToolEntry.IsSafePath); says so instead of failing silently.</summary>
+    private bool RefuseNetworkPath(string path)
+    {
+        if (!ToolEntry.IsNetworkPath(path))
+        {
+            return false;
+        }
+
+        _host.ShowNotice("Network paths aren't supported", "Copy the tool (or icon) to this PC first. Opening it from a share would make the panel connect to that computer every time it starts.", InfoBarSeverity.Warning);
+        return true;
     }
 
     private string? PickFile(string title, string filter, string? folder)
@@ -462,9 +479,11 @@ internal sealed partial class ToolsView : UserControl
     private void LoadEditActions(IEnumerable<ToolAction> actions)
     {
         _editActions.Clear();
-        foreach (var action in actions)
+        var list = actions.ToList();
+        foreach (var action in list)
         {
-            _editActions.Add(new EditableAction(action.Clone(), () => EditPath.Text.Trim().Trim('"')));
+            // One action opens expanded; with several, they start collapsed to keep the page short.
+            _editActions.Add(new EditableAction(action.Clone(), () => EditPath.Text.Trim().Trim('"'), expanded: list.Count == 1));
         }
 
         EditActions.ItemsSource = _editActions;
@@ -482,7 +501,8 @@ internal sealed partial class ToolsView : UserControl
     private void OnEditAddAction(object sender, RoutedEventArgs e) =>
         _editActions.Add(new EditableAction(
             new ToolAction { Name = "New action", Target = ToolTargets.File, Run = _editing?.IsConsoleTool == true ? ToolRunModes.Console : ToolRunModes.Window, Args = "{path}" },
-            () => EditPath.Text.Trim().Trim('"')));
+            () => EditPath.Text.Trim().Trim('"'),
+            expanded: true));
 
     private void OnEditRemoveAction(object sender, RoutedEventArgs e)
     {
@@ -506,7 +526,7 @@ internal sealed partial class ToolsView : UserControl
         var edited = _editActions.Select(a => a.ToAction()).Where(a => a.Name.Length > 0).ToList();
         var defaults = ToolCatalog.DefaultActions(row.Identity.Known);
         bool same = edited.Count == defaults.Count && edited.Zip(defaults).All(p =>
-            p.First.Name == p.Second.Name && p.First.Target == p.Second.Target && p.First.Run == p.Second.Run && p.First.Args == p.Second.Args);
+            p.First.Name == p.Second.Name && p.First.Target == p.Second.Target && p.First.Run == p.Second.Run && p.First.Args == p.Second.Args && p.First.Quote == p.Second.Quote);
         return same ? null : edited;
     }
 
@@ -514,6 +534,11 @@ internal sealed partial class ToolsView : UserControl
     {
         if (PickFile("Choose an icon", "Icons and images (*.ico;*.png;*.jpg;*.jpeg;*.bmp;*.exe;*.dll)|*.ico;*.png;*.jpg;*.jpeg;*.bmp;*.exe;*.dll", Path.GetDirectoryName(EditPath.Text)) is { } path)
         {
+            if (RefuseNetworkPath(path))
+            {
+                return;
+            }
+
             if (ToolRow.LoadIcon(path) is { } icon)
             {
                 _editIcon = path;
@@ -554,6 +579,11 @@ internal sealed partial class ToolsView : UserControl
         }
 
         string path = EditPath.Text.Trim().Trim('"');
+        if (RefuseNetworkPath(path))
+        {
+            return;
+        }
+
         if (!ToolEntry.IsSafePath(path) && !WslTool.TryParse(path, out _, out _))
         {
             _host.ShowNotice("That isn't a full path", "Use Browse… or paste a path like C:\\Tools\\tool.exe.", InfoBarSeverity.Warning);
@@ -686,10 +716,50 @@ internal sealed partial class ToolsView : UserControl
 
     private void OnFoundClick(object sender, MouseButtonEventArgs e)
     {
-        // A click anywhere on the row toggles it; the checkbox handles its own clicks.
-        if (sender is ListBoxItem { DataContext: FoundTool found } && !IsInside<CheckBox>(e.OriginalSource as DependencyObject))
+        // A plain click anywhere on the row toggles it; Ctrl / Shift only select (several rows),
+        // and the checkbox handles its own clicks.
+        if (sender is ListBoxItem { DataContext: FoundTool found }
+            && (Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) == 0
+            && !IsInside<CheckBox>(e.OriginalSource as DependencyObject))
         {
             found.IsChecked = !found.IsChecked;
+        }
+    }
+
+    /// <summary>Checking a box on one of several selected rows checks (or unchecks) them all.</summary>
+    private void OnFoundCheckClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is CheckBox { DataContext: FoundTool clicked } && FoundList.SelectedItems.Contains(clicked))
+        {
+            foreach (var found in FoundList.SelectedItems.OfType<FoundTool>())
+            {
+                found.IsChecked = clicked.IsChecked;
+            }
+        }
+    }
+
+    /// <summary>Space toggles the selected rows (all checked if any wasn't).</summary>
+    private void OnFoundKeyDown(object sender, KeyEventArgs e)
+    {
+        var selected = FoundList.SelectedItems.OfType<FoundTool>().Where(f => f.CanAdd).ToList();
+        if (e.Key == Key.Space && selected.Count > 0)
+        {
+            bool check = selected.Any(f => !f.IsChecked);
+            selected.ForEach(f => f.IsChecked = check);
+            e.Handled = true;
+        }
+    }
+
+    private void OnFindSelectAll(object sender, RoutedEventArgs e) => SetShownChecked(true);
+
+    private void OnFindSelectNone(object sender, RoutedEventArgs e) => SetShownChecked(false);
+
+    /// <summary>Only the rows currently shown (search and chips apply); added tools stay unchecked.</summary>
+    private void SetShownChecked(bool check)
+    {
+        foreach (var found in _foundShown)
+        {
+            found.IsChecked = check;
         }
     }
 
