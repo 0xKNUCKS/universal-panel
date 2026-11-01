@@ -54,8 +54,17 @@ internal sealed class ToolEntry
         return true;
     }
 
+    /// <summary>
+    /// A local, fully qualified path with no quotes. Network paths (\\server\share, \\?\UNC\,
+    /// device paths, //host) are refused: just reading a tool's version or icon from one would
+    /// make the (possibly elevated) panel reach out over SMB and leak the user's NTLM hash, and
+    /// the tool list is user-writable. Mapped drive letters (Z:) aren't detected (known limitation).
+    /// </summary>
     public static bool IsSafePath(string? path) =>
-        path is { Length: > 3 and < 1024 } && System.IO.Path.IsPathFullyQualified(path) && !path.Contains('"');
+        path is { Length: > 3 and < 1024 } && System.IO.Path.IsPathFullyQualified(path) && !path.Contains('"') && !IsNetworkPath(path);
+
+    public static bool IsNetworkPath(string path) =>
+        path.StartsWith(@"\\", StringComparison.Ordinal) || path.StartsWith("//", StringComparison.Ordinal);
 }
 
 /// <summary>Reads both the object form and the plain-path strings older versions saved.</summary>

@@ -94,7 +94,7 @@ internal static class ToolFinder
         (Environment.GetEnvironmentVariable("PATH") ?? string.Empty)
             .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(Environment.ExpandEnvironmentVariables)
-            .Where(f => Path.IsPathFullyQualified(f) && Directory.Exists(f))
+            .Where(f => Path.IsPathFullyQualified(f) && !Shell.ToolEntry.IsNetworkPath(f) && Directory.Exists(f)) // never touch a share
             .Distinct(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>The catalog's WSL commands present in each distro, as "wsl:distro:command".</summary>
