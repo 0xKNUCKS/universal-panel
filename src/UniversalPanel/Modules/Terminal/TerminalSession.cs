@@ -69,7 +69,7 @@ internal sealed class TerminalSession(TerminalProfile profile, Dispatcher dispat
             try
             {
                 var host = await TerminalHost.GetAsync(Admin);
-                string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                string home = Profile.Directory ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
                 await host.StartAsync(this, new TerminalStart(Profile.Program, Profile.Arguments.ToList(), home, _columns, _rows));
             }
             catch (Exception ex) when (ex is IOException or OperationCanceledException or UnauthorizedAccessException or System.ComponentModel.Win32Exception or ProcessActionException)

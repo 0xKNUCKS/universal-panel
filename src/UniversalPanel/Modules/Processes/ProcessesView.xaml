@@ -226,6 +226,12 @@
                     <ui:SymbolIcon Symbol="Open24" />
                   </MenuItem.Icon>
                 </MenuItem>
+                <!--  Filled when the menu opens (Terminal/TerminalMenu.cs)  -->
+                <MenuItem x:Name="TerminalMenu" Header="Terminal">
+                  <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="WindowConsole20" />
+                  </MenuItem.Icon>
+                </MenuItem>
                 <MenuItem Header="Create dump">
                   <MenuItem.Icon>
                     <ui:SymbolIcon Symbol="Save24" />

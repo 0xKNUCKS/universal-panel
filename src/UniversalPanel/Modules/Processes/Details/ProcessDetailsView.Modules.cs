@@ -124,6 +124,7 @@ internal sealed partial class ProcessDetailsView
         }
 
         Tools.OpenWithMenu.Fill(ModuleOpenWithMenu, Host, ToolTarget.ForFile(module.Path));
+        Terminal.TerminalMenu.Fill(ModuleTerminalMenu, Host, null, module.Path);
     }
 
     private void OnModuleOpenLocation(object sender, RoutedEventArgs e)

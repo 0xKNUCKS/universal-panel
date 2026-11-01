@@ -17,6 +17,7 @@ internal sealed partial class TerminalView : UserControl
     private readonly IModuleHost _host;
     private readonly ObservableCollection<TerminalTab> _tabs = [];
     private List<TerminalProfile>? _profiles;
+    private bool _restored;
 
     public TerminalView(IModuleHost host)
     {
@@ -25,6 +26,7 @@ internal sealed partial class TerminalView : UserControl
         Tabs.ItemsSource = _tabs;
         UpdateEmpty();
         _ = Guard.RunAsync("Terminal.Profiles", LoadProfilesAsync);
+        TerminalRequests.Attach(this);
     }
 
     private TerminalTab? Selected => Tabs.SelectedItem as TerminalTab;
@@ -41,7 +43,7 @@ internal sealed partial class TerminalView : UserControl
 
     private async Task LoadProfilesAsync()
     {
-        _profiles = await Task.Run(TerminalProfiles.Detect);
+        _profiles = await TerminalProfiles.GetAsync();
         QuickStart.ItemsSource = _profiles;
         RestoreTabs();
     }
@@ -152,11 +154,13 @@ internal sealed partial class TerminalView : UserControl
     /// <summary>Reopens the tabs saved last time (shells start fresh; admin tabs aren't saved).</summary>
     private void RestoreTabs()
     {
-        if (_profiles is null || _tabs.Count > 0)
+        if (_profiles is null || _restored)
         {
             return;
         }
 
+        _restored = true;
+        var selected = Selected; // a tab another module asked for stays in front
         foreach (var saved in PanelSettings.Current.TerminalTabs.ToList())
         {
             if (_profiles.FirstOrDefault(p => p.Name == saved.Profile) is { } profile)
@@ -164,7 +168,55 @@ internal sealed partial class TerminalView : UserControl
                 Open(profile, admin: false, saved.Name);
             }
         }
+
+        if (selected is not null)
+        {
+            Tabs.SelectedItem = selected;
+        }
     }
+
+    // ---- requests from other modules (TerminalRequests) ------------------------------------
+
+    /// <summary>A new tab with this shell, started in <paramref name="folder"/>.</summary>
+    public void OpenIn(TerminalProfile profile, string folder)
+    {
+        var here = profile.Distro is { } distro
+            ? profile with { Arguments = ["-d", distro, "--cd", folder], Directory = folder } // wsl takes Windows paths
+            : profile with { Directory = folder };
+        Open(here, admin: false);
+    }
+
+    /// <summary>Types a PID or a quoted path into the current tab, without Enter.</summary>
+    public void Paste(string text, bool isPath)
+    {
+        if (Selected is not { Ended: false } tab)
+        {
+            _host.ShowNotice("No terminal open", string.Empty, InfoBarSeverity.Informational);
+            return;
+        }
+
+        _ = Guard.RunAsync("Terminal.Paste", async () =>
+        {
+            // Paths come from other processes: no control characters (no Enter), quoted for the shell.
+            string clean = new(text.Where(c => !char.IsControl(c)).ToArray());
+            if (isPath && tab.Session.Profile.Distro is { } distro)
+            {
+                clean = await Task.Run(() => Guard.Run("Terminal.WslPath", () => ToolCommand.WslPath(distro, clean), _ => clean));
+            }
+
+            tab.Session.WriteInput(isPath ? QuoteFor(tab.Session.Profile.Kind, clean) : clean);
+            tab.Focus();
+        });
+    }
+
+    private static string QuoteFor(string kind, string path) => kind switch
+    {
+        "cmd" => $"\"{path}\"",
+        "powershell" => $"'{path.Replace("'", "''", StringComparison.Ordinal)}'",
+        "wsl" => $"'{path.Replace("'", "'\\''", StringComparison.Ordinal)}'",
+        "python" => $"'{path.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("'", "\\'", StringComparison.Ordinal)}'",
+        _ => path,
+    };
 
     private void SaveTabs()
     {

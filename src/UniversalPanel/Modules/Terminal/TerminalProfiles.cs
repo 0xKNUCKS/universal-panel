@@ -12,14 +12,27 @@ internal sealed record TerminalProfile(string Name, string Program, IReadOnlyLis
 {
     /// <summary>The program's own icon; a distro's from its package. Frozen.</summary>
     public ImageSource? Icon { get; init; }
+
+    /// <summary>Folder to start in; null = the user's profile folder.</summary>
+    public string? Directory { get; init; }
+
+    /// <summary>The WSL distro, for WSL profiles.</summary>
+    public string? Distro { get; init; }
 }
 
 /// <summary>The shells installed here: PowerShell 7, Windows PowerShell, cmd, each WSL distro, Python.</summary>
 internal static class TerminalProfiles
 {
     private const int IconSize = 16;
+    private static Task<List<TerminalProfile>>? _detecting;
 
-    public static List<TerminalProfile> Detect()
+    /// <summary>Detected once per run (it asks WSL for its distros, which takes a moment).</summary>
+    public static Task<List<TerminalProfile>> GetAsync() => _detecting ??= Task.Run(Detect);
+
+    /// <summary>The shells, if detection has finished; otherwise starts it and returns null.</summary>
+    public static List<TerminalProfile>? Cached() => GetAsync() is { IsCompletedSuccessfully: true } done ? done.Result : null;
+
+    private static List<TerminalProfile> Detect()
     {
         string system = Environment.SystemDirectory;
         var profiles = new List<TerminalProfile>();
@@ -44,7 +57,7 @@ internal static class TerminalProfiles
         {
             foreach (var distro in ToolFinder.Distros())
             {
-                profiles.Add(new(distro, wsl, ["-d", distro, "--cd", "~"], "wsl") { Icon = DistroIcons.Get(distro, IconSize) });
+                profiles.Add(new(distro, wsl, ["-d", distro, "--cd", "~"], "wsl") { Icon = DistroIcons.Get(distro, IconSize), Distro = distro });
             }
         }
 

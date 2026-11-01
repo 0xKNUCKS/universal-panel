@@ -210,6 +210,12 @@
                     <ui:SymbolIcon Symbol="Open24" />
                   </MenuItem.Icon>
                 </MenuItem>
+                <!--  Filled when the menu opens (Terminal/TerminalMenu.cs)  -->
+                <MenuItem x:Name="ModuleTerminalMenu" Header="Terminal">
+                  <MenuItem.Icon>
+                    <ui:SymbolIcon Symbol="WindowConsole20" />
+                  </MenuItem.Icon>
+                </MenuItem>
                 <Separator />
                 <MenuItem Click="OnModuleOpenLocation" Header="Open file location">
                   <MenuItem.Icon>
