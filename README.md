@@ -62,6 +62,8 @@ docs/
   SECURITY.md        applied hardening + rules for new modules
 ```
 
+To contribute, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Error handling in one paragraph
 
 Every caught exception goes to `ErrorReporter.Report(ex, context)`, which classifies it (fatal
