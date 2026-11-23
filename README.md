@@ -10,6 +10,7 @@ explorer, your RE tools, and a terminal, all wired together.
 ![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
 ![WPF](https://img.shields.io/badge/UI-WPF%20%2B%20WPF--UI-0078D4)
 ![Windows 11](https://img.shields.io/badge/Windows-11-0078D4?logo=windows11&logoColor=white)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 <img src="docs/images/processes.png" alt="The Processes module showing a live process tree" width="720">
 
@@ -29,6 +30,7 @@ explorer, your RE tools, and a terminal, all wired together.
 - [Where things are stored](#where-things-are-stored)
 - [Project layout](#project-layout)
 - [Contributing](#contributing)
+- [License](#license)
 
 ## Features
 
@@ -228,3 +230,8 @@ Built with [WPF-UI](https://github.com/lepoco/wpfui), [H.NotifyIcon](https://git
 [NHotkey](https://github.com/thomaslevesque/NHotkey), [CsWin32](https://github.com/microsoft/CsWin32),
 the [Windows Terminal](https://github.com/microsoft/terminal) control and
 [Detect It Easy](https://github.com/horsicq/DIE-engine). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## License
+
+[MIT](LICENSE). Third-party components keep their own licenses; see
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
